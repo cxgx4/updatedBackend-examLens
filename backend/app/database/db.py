@@ -77,6 +77,35 @@ def init_db(db_path: Optional[str] = None) -> None:
         cursor = conn.cursor()
         for statement in get_all_ddl():
             cursor.execute(statement)
+
+        # Migration helper: ensure existing Document table has all needed columns
+        cursor.execute("PRAGMA table_info(Document);")
+        columns = [row[1] for row in cursor.fetchall()]
+        if "file_name" not in columns:
+            cursor.execute("ALTER TABLE Document ADD COLUMN file_name TEXT;")
+        if "type" not in columns:
+            cursor.execute("ALTER TABLE Document ADD COLUMN type TEXT;")
+        if "source_pages" not in columns:
+            cursor.execute("ALTER TABLE Document ADD COLUMN source_pages INTEGER DEFAULT 0;")
+        if "timestamp" not in columns:
+            cursor.execute("ALTER TABLE Document ADD COLUMN timestamp TEXT;")
+        if "year" not in columns:
+            cursor.execute("ALTER TABLE Document ADD COLUMN year INTEGER;")
+        if "exam_type" not in columns:
+            cursor.execute("ALTER TABLE Document ADD COLUMN exam_type TEXT;")
+
+        # Migration helper: ensure existing Question table has all needed columns
+        cursor.execute("PRAGMA table_info(Question);")
+        q_columns = [row[1] for row in cursor.fetchall()]
+        if "question_id" not in q_columns:
+            cursor.execute("ALTER TABLE Question ADD COLUMN question_id TEXT;")
+        if "cleaned_text" not in q_columns:
+            cursor.execute("ALTER TABLE Question ADD COLUMN cleaned_text TEXT;")
+        if "topic_id" not in q_columns:
+            cursor.execute("ALTER TABLE Question ADD COLUMN topic_id INTEGER;")
+        if "repeat_group_id" not in q_columns:
+            cursor.execute("ALTER TABLE Question ADD COLUMN repeat_group_id INTEGER;")
+
         conn.commit()
     finally:
         conn.close()

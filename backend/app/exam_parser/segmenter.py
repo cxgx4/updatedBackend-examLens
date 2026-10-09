@@ -113,6 +113,12 @@ PATTERN_SECTION_WITH_CONTENT = re.compile(
     r"(?i)^\s*(SECTION|PART)\s+([A-Z]{1,3}|\d{1,2})\s*[:\-]?"
 )
 
+# Pattern 5: Instruction headings / lines
+# e.g. "1. Answer any 5 questions.", "Note: Attempt all questions."
+PATTERN_INSTRUCTION = re.compile(
+    r"(?i)^\s*(\d{1,2}[.)]\s*)?(instruction|note|attempt|answer any|time allowed|maximum marks|max marks|all questions carry|figures to the right|candidates are required|this paper contains|read the following)"
+)
+
 
 # ═══════════════════════════════════════════════════════════════════
 # MAIN SEGMENTATION FUNCTION
@@ -171,6 +177,11 @@ def segment_questions(
     )
 
     for line_idx, line in enumerate(lines):
+
+        # ── Check for instruction line ─────────────────────────────────────
+        if PATTERN_INSTRUCTION.match(line):
+            logger.debug(f"  Line {line_idx}: Instruction line → skipped")
+            continue
 
         # ── Check for SECTION heading ──────────────────────────────────────
         section_match = PATTERN_SECTION_WITH_CONTENT.match(line)
@@ -386,6 +397,9 @@ def is_question_start(line: str) -> bool:
     """
     stripped = line.strip()
     if not stripped:
+        return False
+
+    if PATTERN_INSTRUCTION.match(line):
         return False
 
     if PATTERN_Q_PREFIX.match(line):

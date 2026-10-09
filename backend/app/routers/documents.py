@@ -62,8 +62,14 @@ def reorder_pages(document_id: int, payload: PageReorderRequest, db: Session = D
         raise HTTPException(status_code=404, detail="Document not found")
 
     src_pdf = pymupdf.open(doc.file_path)
-    if len(payload.new_page_order) != len(src_pdf):
+    total_pages = len(src_pdf)
+    if len(payload.new_page_order) != total_pages:
+        src_pdf.close()
         raise HTTPException(status_code=400, detail="Page count mismatch")
+
+    if any(p < 1 or p > total_pages for p in payload.new_page_order):
+        src_pdf.close()
+        raise HTTPException(status_code=400, detail=f"Page numbers must be between 1 and {total_pages}")
 
     new_pdf = pymupdf.open()
     for orig_page_num in payload.new_page_order:
@@ -71,8 +77,11 @@ def reorder_pages(document_id: int, payload: PageReorderRequest, db: Session = D
         new_pdf.insert_pdf(src_pdf, from_page=orig_page_num - 1, to_page=orig_page_num - 1)
 
     src_pdf.close()
-    new_pdf.save(doc.file_path, incremental=False, encryption=0)
+    temp_path = doc.file_path + ".tmp"
+    new_pdf.save(temp_path, incremental=False, encryption=0)
     new_pdf.close()
+
+    os.replace(temp_path, doc.file_path)
 
     # Re-rasterize pages after reordering
     doc_dir = os.path.dirname(doc.file_path)

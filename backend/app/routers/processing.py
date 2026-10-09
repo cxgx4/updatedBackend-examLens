@@ -8,7 +8,7 @@ from app.models import Document
 from app.ocr.store import run_and_store
 from app.ocr.tesseract_runtime import is_tesseract_available
 from app.routers.documents import get_shared_contract_payload
-from app.services.note__service import (
+from app.services.note_service import (
     GeminiNotConfiguredError,
     NoteStructurer,
 )
@@ -59,6 +59,16 @@ def trigger_processing_pipeline(document_id: int, db: Session = Depends(get_db))
             note_ids = run_and_store(cleaned_pages, db, lecture_date=doc.timestamp)
             structuring = _structure_notes(db, note_ids)
             db.commit()
+
+            # Trigger topic assignment and flashcard generation for notes
+            try:
+                from app.services.topic_service import TopicAssigner
+                from app.services.flashcard_service import FlashcardGenerator
+                TopicAssigner().assign_topics_to_notes(db)
+                FlashcardGenerator().generate_from_notes(db)
+            except Exception as exc:
+                print(f"Post-processing for notes skipped: {exc}")
+
             return {
                 "status": "success",
                 "message": f"Pipeline completed for {doc.type}",
@@ -73,14 +83,33 @@ def trigger_processing_pipeline(document_id: int, db: Session = Depends(get_db))
                 question_count = len(existing)
             else:
                 parsed = parse_question_paper(doc.file_path, document_id=doc.id)
+                if parsed.year and not doc.year:
+                    doc.year = parsed.year
+                if parsed.exam_type and not doc.exam_type:
+                    doc.exam_type = parsed.exam_type
                 for question in parsed.questions:
                     question.document_id = doc.id
                 question_count = insert_questions_batch(parsed.questions)
             db.commit()
+
+            # Optional NLP topic classification, repeat grouping & flashcards
+            nlp_result = {"status": "skipped"}
+            try:
+                from app.services.topic_service import TopicAssigner
+                from app.services.repeat_service import RepeatDetector
+                from app.services.flashcard_service import FlashcardGenerator
+                TopicAssigner().assign_topics_to_questions()
+                RepeatDetector().detect_repeats()
+                FlashcardGenerator().generate_from_notes()
+                nlp_result = {"status": "success"}
+            except Exception as exc:
+                nlp_result = {"status": "skipped", "reason": str(exc)}
+
             return {
                 "status": "success",
                 "message": f"Pipeline completed for {doc.type}",
                 "question_count": question_count,
+                "nlp_pipeline": nlp_result,
             }
 
         raise HTTPException(status_code=400, detail=f"Unsupported document type: {doc.type}")

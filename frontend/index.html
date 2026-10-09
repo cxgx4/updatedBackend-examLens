@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ExamLens — Study Intelligence Pipeline</title>
+    <meta name="description" content="Turn lecture board photos and past question papers into one connected study system." />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css" integrity="sha384-wcIxkf4k558AjM3Yz3BBFQUbk/zgIYC2R0QpeeEl+kDmsCEqvQxrqP9hBLSkUtAI" crossorigin="anonymous">
+
+    <!-- Theme detection: runs synchronously BEFORE first paint to prevent flash -->
+    <script>
+      (function () {
+        var stored = localStorage.getItem('examlens-theme');
+        var theme = stored || 'dark';
+        if (theme === 'light') {
+          document.documentElement.classList.replace('dark', 'light');
+        }
+      })();
+    </script>
+  </head>
+  <body class="bg-[#07090D] text-[#E2E8F0] antialiased selection:bg-[#FF3B30] selection:text-white overflow-x-hidden">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+
+    <!-- Floating theme toggle button — injected via vanilla JS, no React changes needed -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        // SVG icons
+        var moonSVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+        var sunSVG  = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
+
+        var btn = document.createElement('button');
+        btn.id = 'theme-toggle';
+        btn.setAttribute('aria-label', 'Toggle light / dark theme');
+        btn.setAttribute('title', 'Toggle theme');
+
+        function isLight() {
+          return document.documentElement.classList.contains('light');
+        }
+        function render() {
+          btn.innerHTML = isLight() ? moonSVG : sunSVG;
+        }
+
+        // Styling
+        Object.assign(btn.style, {
+          position: 'fixed',
+          bottom: '20px',
+          left: '20px',
+          zIndex: '9999',
+          width: '36px',
+          height: '36px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          border: '1px solid',
+          borderColor: isLight() ? '#D1D9E6' : '#1F2937',
+          background: isLight() ? '#FFFFFF' : '#0D1117',
+          color: isLight() ? '#0F172A' : '#E2E8F0',
+          fontFamily: 'JetBrains Mono, monospace',
+          fontSize: '12px',
+          transition: 'background 0.25s, color 0.25s, border-color 0.25s',
+          borderRadius: '0px',
+          boxShadow: 'none',
+          padding: '0',
+          outline: 'none',
+        });
+
+        btn.addEventListener('mouseenter', function () {
+          btn.style.borderColor = '#FF3B30';
+          btn.style.color = '#FF3B30';
+        });
+        btn.addEventListener('mouseleave', function () {
+          btn.style.borderColor = isLight() ? '#D1D9E6' : '#1F2937';
+          btn.style.color = isLight() ? '#0F172A' : '#E2E8F0';
+        });
+
+        btn.addEventListener('click', function () {
+          var html = document.documentElement;
+          if (isLight()) {
+            html.classList.replace('light', 'dark');
+            localStorage.setItem('examlens-theme', 'dark');
+          } else {
+            html.classList.replace('dark', 'light');
+            localStorage.setItem('examlens-theme', 'light');
+          }
+          render();
+          // Re-apply hover-safe base colors
+          btn.style.borderColor = isLight() ? '#D1D9E6' : '#1F2937';
+          btn.style.background = isLight() ? '#FFFFFF' : '#0D1117';
+          btn.style.color = isLight() ? '#0F172A' : '#E2E8F0';
+        });
+
+        render();
+        document.body.appendChild(btn);
+      });
+    </script>
+  </body>
+</html>

@@ -15,7 +15,7 @@ from app.database import get_engine
 from app.env_loader import load_backend_env
 from app.models import Note
 
-DEFAULT_GEMINI_MODEL = "gemini-3.8-flash"
+DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
 GEMINI_TIMEOUT_SECONDS = 30
 
 

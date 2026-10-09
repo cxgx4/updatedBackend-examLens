@@ -46,6 +46,8 @@ def test_required_routers_are_registered():
         "/api/exam/questions",
         "/api/analytics/coverage",
         "/api/analytics/planner",
+        "/api/analytics/practice-set",
+        "/api/analytics/timeline",
         "/api/ingest/upload",
         "/api/documents/{document_id}",
         "/api/documents/{document_id}/contract",

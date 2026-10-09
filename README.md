@@ -71,3 +71,17 @@ uvicorn app.main:app --reload
 cd backend
 pytest tests/ -v
 ```
+
+---
+
+## Running the Frontend (UI)
+
+The frontend is a Vite + React + TypeScript web application located in `frontend/`.
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Visit `http://localhost:5173` to experience the full interactive study intelligence dashboard with 3D flashcards, D3 topic graph, KaTeX formulas, and 5-minute live demo mode.

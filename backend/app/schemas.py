@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List
 
 class SharedPageContract(BaseModel):
@@ -16,8 +16,7 @@ class DocumentResponse(BaseModel):
     timestamp: Optional[str]
     file_path: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class PageReorderRequest(BaseModel):
     new_page_order: List[int]

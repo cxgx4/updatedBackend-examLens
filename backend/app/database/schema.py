@@ -57,7 +57,7 @@ CREATE_DOCUMENT_TABLE = """
 CREATE TABLE IF NOT EXISTS Document (
     id            INTEGER  PRIMARY KEY AUTOINCREMENT,
     type          TEXT     DEFAULT NULL,              -- "lecture_board" or "question_paper"
-    file_name     TEXT     NOT NULL,
+    file_name     TEXT     DEFAULT NULL,
     file_path     TEXT     DEFAULT NULL,
     source_pages  INTEGER  DEFAULT 0,
     timestamp     TEXT     DEFAULT NULL,              -- stores lecture date (matches Member 6)
@@ -92,7 +92,7 @@ CREATE TABLE IF NOT EXISTS Question (
     id               INTEGER  PRIMARY KEY AUTOINCREMENT,
 
     -- ── Member 3 fills these ──────────────────────────────────────────────
-    question_id      TEXT     NOT NULL UNIQUE,  -- UUID string from parser.py
+    question_id      TEXT     DEFAULT NULL,      -- UUID string from parser.py
     document_id      INTEGER  NOT NULL
                               REFERENCES Document(id)
                               ON DELETE CASCADE,
@@ -116,6 +116,41 @@ CREATE TABLE IF NOT EXISTS Question (
 );
 """
 
+# ── Note table ──────────────────────────────────────────────────────────────────
+CREATE_NOTE_TABLE = """
+CREATE TABLE IF NOT EXISTS Note (
+    id                 INTEGER  PRIMARY KEY AUTOINCREMENT,
+    document_id        INTEGER  NOT NULL REFERENCES Document(id) ON DELETE CASCADE,
+    page               INTEGER  NOT NULL,
+    lecture_date       TEXT     DEFAULT NULL,
+    text               TEXT     DEFAULT NULL,
+    structured_content TEXT     DEFAULT NULL,
+    latex              TEXT     DEFAULT NULL,
+    confidence         REAL     DEFAULT NULL
+);
+"""
+
+# ── NoteTopic table ──────────────────────────────────────────────────────────────
+CREATE_NOTETOPIC_TABLE = """
+CREATE TABLE IF NOT EXISTS NoteTopic (
+    note_id     INTEGER NOT NULL REFERENCES Note(id) ON DELETE CASCADE,
+    topic_id    INTEGER NOT NULL REFERENCES Topic(id) ON DELETE CASCADE,
+    confidence  REAL    DEFAULT NULL,
+    PRIMARY KEY (note_id, topic_id)
+);
+"""
+
+# ── Flashcard table ──────────────────────────────────────────────────────────────
+CREATE_FLASHCARD_TABLE = """
+CREATE TABLE IF NOT EXISTS Flashcard (
+    id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+    note_id            INTEGER NOT NULL REFERENCES Note(id) ON DELETE CASCADE,
+    front              TEXT    NOT NULL,
+    back               TEXT    NOT NULL,
+    linked_question_id INTEGER DEFAULT NULL REFERENCES Question(id) ON DELETE SET NULL
+);
+"""
+
 # ── Indexes for common query patterns ─────────────────────────────────────────
 # Member 5 will query by document_id, year, topic_id frequently.
 CREATE_INDEXES = [
@@ -127,7 +162,6 @@ CREATE_INDEXES = [
 ]
 
 # ── All DDL in order ───────────────────────────────────────────────────────────
-# Call schema.get_all_ddl() to get everything needed to initialise the DB.
 def get_all_ddl() -> list[str]:
     """
     Return all CREATE TABLE and CREATE INDEX statements in dependency order.
@@ -137,5 +171,9 @@ def get_all_ddl() -> list[str]:
         CREATE_DOCUMENT_TABLE,
         CREATE_TOPIC_TABLE,
         CREATE_QUESTION_TABLE,
+        CREATE_NOTE_TABLE,
+        CREATE_NOTETOPIC_TABLE,
+        CREATE_FLASHCARD_TABLE,
         *CREATE_INDEXES,
     ]
+

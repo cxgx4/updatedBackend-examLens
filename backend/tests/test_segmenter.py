@@ -341,6 +341,19 @@ class TestSegmentQuestions:
         questions, _ = segment_questions(text, page_number=1)
         assert len(questions) == 0
 
+    def test_numbered_instruction_line_filtered(self):
+        """Numbered instructions like '1. Answer any 5 questions' must not be questions."""
+        text = (
+            "1. Answer any 5 questions from below.\n"
+            "2. Note: All questions carry 10 marks.\n"
+            "Q1. Explain ACID properties in DBMS.\n"
+            "Q2. Describe B-Trees."
+        )
+        questions, _ = segment_questions(text, page_number=1)
+        assert len(questions) == 2
+        labels = [q["question_label"] for q in questions]
+        assert labels == ["Q1", "Q2"]
+
     def test_return_type_is_list_of_dicts(self):
         text = "Q1. Question one.\nQ2. Question two."
         questions, section = segment_questions(text, page_number=1)

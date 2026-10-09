@@ -3,7 +3,7 @@
 import pytest
 
 from app.models import Note
-from app.services.note__service import (
+from app.services.note_service import (
     GeminiNotConfiguredError,
     GeminiResponseError,
     NoteStructurer,

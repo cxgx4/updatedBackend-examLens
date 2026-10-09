@@ -14,8 +14,8 @@ from app.vision.models import CleanedPage
 _MIN_KEYPOINTS = 20
 _MIN_GOOD_MATCHES = 20
 _MIN_INLIERS = 12
-_MIN_INLIER_RATIO = 0.30
-_RATIO_TEST = 0.70
+_MIN_INLIER_RATIO = 0.20
+_RATIO_TEST = 0.75
 _RANSAC_REPROJ = 5.0
 _MAX_ROTATION_DEG = 25.0
 _MIN_SCALE = 0.70
@@ -131,7 +131,7 @@ def _estimate_homography(
 
     source = np.float32([keypoints_b[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
     destination = np.float32([keypoints_a[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
-    method = getattr(cv2, "USAC_MAGSAC", cv2.RANSAC)
+    method = cv2.RANSAC
     homography, mask = cv2.findHomography(source, destination, method, _RANSAC_REPROJ)
     if homography is None or mask is None:
         return None, 0

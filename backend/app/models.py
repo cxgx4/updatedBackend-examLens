@@ -55,6 +55,7 @@ class Question(Base):
     __tablename__ = "Question"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    question_id = Column(String, nullable=True, index=True)
     document_id = Column(Integer, ForeignKey("Document.id"), nullable=False)
     page = Column(Integer, nullable=False)
     year = Column(Integer, nullable=True)
