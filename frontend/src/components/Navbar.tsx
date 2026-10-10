@@ -64,7 +64,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           {isMockWorkspace && (
             <div className="hidden lg:flex items-center gap-1.5 px-2 py-0.5 bg-[#0D1117] border border-[#1F2937] text-[10px] font-mono text-emerald-400">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-              <span>SAMPLE WORKSPACE</span>
+              <span>DEMO DATA</span>
             </div>
           )}
         </div>

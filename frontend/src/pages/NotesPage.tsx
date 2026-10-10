@@ -9,7 +9,7 @@ import { Note, OCRWord } from '../types';
 import { MOCK_NOTES } from '../mocks';
 
 export const NotesPage: React.FC = () => {
-  const [notes, setNotes] = useState<Note[]>(MOCK_NOTES);
+  const [notes, setNotes] = useState<Note[]>([]);
   const [selectedNoteId, setSelectedNoteId] = useState<number>(101);
   const [activeRegionId, setActiveRegionId] = useState<string | null>(null);
   const [editingWordId, setEditingWordId] = useState<string | null>(null);
@@ -18,7 +18,32 @@ export const NotesPage: React.FC = () => {
   const [latexMode, setLatexMode] = useState<'rendered' | 'raw'>('rendered');
   const [feedbackToast, setFeedbackToast] = useState<string | null>(null);
 
+  React.useEffect(() => {
+    const fetchNotes = async () => {
+      const n = await api.getNotes();
+      setNotes(n);
+      if (n.length > 0) {
+        setSelectedNoteId(n[0].id);
+      }
+    };
+    fetchNotes();
+  }, []);
+
   const activeNote = notes.find(n => n.id === selectedNoteId) || notes[0];
+
+  if (!notes.length || !activeNote) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
+        <div className="w-16 h-16 bg-[#161B22] border border-[#1F2937] flex items-center justify-center rounded-full">
+          <FileText size={24} className="text-slate-500" />
+        </div>
+        <h2 className="text-xl font-display text-white tracking-wider">NO LECTURE NOTES DETECTED</h2>
+        <p className="text-slate-400 font-mono text-xs max-w-md">
+          Upload a "Lecture Board" document to run the OCR and Vision pipeline. Question papers do not generate structured lecture notes.
+        </p>
+      </div>
+    );
+  }
 
   const handleSelectRegion = (regionId: string) => {
     setActiveRegionId(prev => prev === regionId ? null : regionId);
@@ -34,6 +59,7 @@ export const NotesPage: React.FC = () => {
   };
 
   const handleSaveWordCorrection = async (wordId: string) => {
+    if (!activeNote) return;
     const updated = await api.updateWordCorrection(activeNote.id, wordId, correctionInput);
     setNotes(prev => prev.map(n => n.id === updated.id ? updated : n));
     setEditingWordId(null);
@@ -41,7 +67,18 @@ export const NotesPage: React.FC = () => {
   };
 
   const handleAcceptAllFixes = async () => {
-    const updated = await api.acceptAllCorrections(activeNote.id);
+    if (!activeNote) return;
+    const suggestedWords = activeNote.words
+      .filter(w => w.low_confidence)
+      .map(w => {
+        let txt = w.text;
+        if (txt === 'decompostion') txt = 'decomposition';
+        if (txt === 'dependancies') txt = 'dependencies';
+        if (txt === 'seralizability') txt = 'serializability';
+        return { wordId: w.word_id, text: txt };
+      });
+      
+    const updated = await api.acceptAllCorrections(activeNote.id, suggestedWords);
     setNotes(prev => prev.map(n => n.id === updated.id ? updated : n));
     showToast('Accepted all OCR fixes! High confidence achieved.');
   };

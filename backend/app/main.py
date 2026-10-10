@@ -99,6 +99,10 @@ app.include_router(documents_router)
 app.include_router(processing_router)
 app.include_router(exports_router)
 
+# Read additions (Part A)
+from app.routers.read_api import router as read_api_router
+app.include_router(read_api_router)
+
 
 @app.get("/", tags=["Health & Info"])
 async def root():

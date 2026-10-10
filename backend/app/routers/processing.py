@@ -61,11 +61,21 @@ def trigger_processing_pipeline(document_id: int, db: Session = Depends(get_db))
             db.commit()
 
             # Trigger topic assignment and flashcard generation for notes
+            topics_status = {"status": "skipped"}
+            flashcards_status = {"status": "skipped"}
             try:
                 from app.services.topic_service import TopicAssigner
                 from app.services.flashcard_service import FlashcardGenerator
-                TopicAssigner().assign_topics_to_notes(db)
-                FlashcardGenerator().generate_from_notes(db)
+                try:
+                    TopicAssigner().assign_topics_to_notes(db)
+                    topics_status = {"status": "success"}
+                except Exception as e:
+                    topics_status = {"status": "error", "reason": str(e)}
+                try:
+                    FlashcardGenerator().generate_from_notes(db)
+                    flashcards_status = {"status": "success"}
+                except Exception as e:
+                    flashcards_status = {"status": "error", "reason": str(e)}
             except Exception as exc:
                 print(f"Post-processing for notes skipped: {exc}")
 
@@ -75,6 +85,10 @@ def trigger_processing_pipeline(document_id: int, db: Session = Depends(get_db))
                 "cleaned_pages": len(cleaned_pages),
                 "note_ids": note_ids,
                 "structuring": structuring,
+                "vision": {"status": "success", "reason": f"Processed {len(cleaned_pages)} pages"},
+                "ocr": {"status": "success", "reason": f"Stored {len(note_ids)} notes"},
+                "topics": topics_status,
+                "flashcards": flashcards_status
             }
 
         if doc.type == "question_paper":
@@ -94,13 +108,33 @@ def trigger_processing_pipeline(document_id: int, db: Session = Depends(get_db))
 
             # Optional NLP topic classification, repeat grouping & flashcards
             nlp_result = {"status": "skipped"}
+            topics_status = {"status": "skipped"}
+            repeats_status = {"status": "skipped"}
+            flashcards_status = {"status": "skipped"}
             try:
                 from app.services.topic_service import TopicAssigner
                 from app.services.repeat_service import RepeatDetector
                 from app.services.flashcard_service import FlashcardGenerator
-                TopicAssigner().assign_topics_to_questions()
-                RepeatDetector().detect_repeats()
-                FlashcardGenerator().generate_from_notes()
+                
+                try:
+                    # Fixing the session argument issue here for question_paper branch.
+                    TopicAssigner().assign_topics_to_questions(db)
+                    topics_status = {"status": "success"}
+                except Exception as e:
+                    topics_status = {"status": "error", "reason": str(e)}
+                    
+                try:
+                    RepeatDetector().detect_repeats(db)
+                    repeats_status = {"status": "success"}
+                except Exception as e:
+                    repeats_status = {"status": "error", "reason": str(e)}
+                    
+                try:
+                    FlashcardGenerator().generate_from_notes(db)
+                    flashcards_status = {"status": "success"}
+                except Exception as e:
+                    flashcards_status = {"status": "error", "reason": str(e)}
+                    
                 nlp_result = {"status": "success"}
             except Exception as exc:
                 nlp_result = {"status": "skipped", "reason": str(exc)}
@@ -110,6 +144,9 @@ def trigger_processing_pipeline(document_id: int, db: Session = Depends(get_db))
                 "message": f"Pipeline completed for {doc.type}",
                 "question_count": question_count,
                 "nlp_pipeline": nlp_result,
+                "topics": topics_status,
+                "repeats": repeats_status,
+                "flashcards": flashcards_status
             }
 
         raise HTTPException(status_code=400, detail=f"Unsupported document type: {doc.type}")

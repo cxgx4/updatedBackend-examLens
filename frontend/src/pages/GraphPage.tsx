@@ -9,6 +9,7 @@ import {
   MOCK_GRAPH_NODES, MOCK_GRAPH_LINKS, MOCK_TOPICS, 
   MOCK_QUESTIONS, MOCK_NOTES 
 } from '../mocks';
+import { api } from '../services/api';
 
 export const GraphPage: React.FC = () => {
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -17,13 +18,23 @@ export const GraphPage: React.FC = () => {
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [hoveredNodeId, setHoveredNodeId] = useState<number | null>(null);
 
-  const nodesData: GraphNode[] = React.useMemo(() => 
-    MOCK_GRAPH_NODES.map(d => ({ ...d })), []
-  );
-  
-  const linksData: GraphLink[] = React.useMemo(() => 
-    MOCK_GRAPH_LINKS.map(d => ({ ...d })), []
-  );
+  const [nodesData, setNodesData] = useState<GraphNode[]>([]);
+  const [linksData, setLinksData] = useState<GraphLink[]>([]);
+  const [topics, setTopics] = useState<Topic[]>([]);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [notes, setNotes] = useState<Note[]>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const graph = await api.getGraph();
+      setNodesData(graph.nodes);
+      setLinksData(graph.links);
+      setTopics(await api.getTopics());
+      setQuestions(await api.getQuestions());
+      setNotes(await api.getNotes());
+    };
+    fetchData();
+  }, []);
 
   useEffect(() => {
     if (!svgRef.current || !containerRef.current) return;
@@ -156,15 +167,15 @@ export const GraphPage: React.FC = () => {
 
   // Connected questions & notes for selected node drawer
   const relatedQuestions = selectedNode 
-    ? MOCK_QUESTIONS.filter(q => q.topic_id === selectedNode.id)
+    ? questions.filter(q => q.topic_id === selectedNode.id)
     : [];
 
   const relatedNotes = selectedNode
-    ? MOCK_NOTES.filter(n => n.topic_ids.includes(selectedNode.id))
+    ? notes.filter(n => n.topic_ids.includes(selectedNode.id))
     : [];
 
   const topicMeta = selectedNode
-    ? MOCK_TOPICS.find(t => t.id === selectedNode.id)
+    ? topics.find(t => t.id === selectedNode.id)
     : null;
 
   return (

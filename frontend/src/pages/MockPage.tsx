@@ -13,6 +13,15 @@ export const MockPage: React.FC = () => {
   const [revealedAnswers, setRevealedAnswers] = useState<Record<number, boolean>>({});
   const [userAnswers, setUserAnswers] = useState<Record<number, string>>({});
   const [exportToast, setExportToast] = useState<string | null>(null);
+  const [questions, setQuestions] = useState<Question[]>([]);
+
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      const q = await import('../services/api').then(m => m.api.getQuestions());
+      setQuestions(q);
+    };
+    fetchQuestions();
+  }, []);
 
   useEffect(() => {
     let interval: any = null;
@@ -48,7 +57,7 @@ export const MockPage: React.FC = () => {
 
   const handleExportPaper = () => {
     const text = `# EXAMLENS MOCK EXAM PAPER - DATABASE MANAGEMENT SYSTEMS\nDuration: 90 Minutes | Total Marks: 50\n\n` +
-      MOCK_QUESTIONS.slice(0, 5).map((q, i) => `Q${i + 1}. [${q.marks} Marks] (Section ${q.section})\n${q.text}\n\n`).join('\n---\n');
+      questions.slice(0, 5).map((q, i) => `Q${i + 1}. [${q.marks} Marks] (Section ${q.section})\n${q.text}\n\n`).join('\n---\n');
     
     const blob = new Blob([text], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
@@ -64,7 +73,7 @@ export const MockPage: React.FC = () => {
     setTimeout(() => setExportToast(null), 3000);
   };
 
-  const mockQuestions = MOCK_QUESTIONS.slice(0, 5);
+  const mockQuestions = questions.slice(0, 5);
 
   return (
     <div className="space-y-8 pb-16">

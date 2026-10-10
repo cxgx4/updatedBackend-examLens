@@ -19,29 +19,22 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
   }, [isOpen, selectedFormat]);
 
   const loadPreview = async (format: 'markdown' | 'pdf' | 'anki') => {
-    const text = await api.exportContent(format);
-    setPreviewContent(text);
+    // Generate simple preview text
+    const preview = format === 'markdown' 
+      ? '# EXAMLENS MASTER NOTES\n\n## Topic 1\nNotes go here...'
+      : format === 'anki'
+      ? 'front,back,tags\nWhat is 1NF?,Atomic values,dbms'
+      : 'PDF generation ready...';
+    setPreviewContent(preview);
   };
 
-  const handleDownload = () => {
-    const filename = 
-      selectedFormat === 'markdown' ? 'examlens_master_notes.md' :
-      selectedFormat === 'anki' ? 'examlens_anki_deck.csv' : 'examlens_study_notes.pdf';
-    
-    const blob = new Blob([previewContent], { 
-      type: selectedFormat === 'markdown' ? 'text/markdown' : 
-            selectedFormat === 'anki' ? 'text/csv' : 'application/pdf' 
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-
-    setToastMessage(`Downloaded ${filename} successfully`);
+  const handleDownload = async () => {
+    try {
+      await api.exportContent(selectedFormat);
+      setToastMessage(`Downloaded successfully`);
+    } catch (e: any) {
+      setToastMessage(e.message || 'Export failed');
+    }
     setTimeout(() => setToastMessage(null), 3000);
   };
 

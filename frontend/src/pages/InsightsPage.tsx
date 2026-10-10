@@ -12,11 +12,23 @@ interface InsightsPageProps {
 }
 
 export const InsightsPage: React.FC<InsightsPageProps> = ({ onNavigateToPlanner }) => {
-  const [topics] = useState<Topic[]>(MOCK_TOPICS);
-  const [heatmap] = useState(MOCK_HEATMAP_DATA);
-  const [coverageGaps, setCoverageGaps] = useState<CoverageGapItem[]>(MOCK_COVERAGE_GAPS);
+  const [topics, setTopics] = useState<Topic[]>([]);
+  const [heatmap, setHeatmap] = useState<any[]>([]);
+  const [coverageGaps, setCoverageGaps] = useState<CoverageGapItem[]>([]);
   const [selectedTopicFilter, setSelectedTopicFilter] = useState<number | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    const fetchData = async () => {
+      const t = await api.getTopics();
+      setTopics(t);
+      const h = await api.getHeatmap();
+      setHeatmap(h);
+      const g = await api.getCoverageGaps();
+      setCoverageGaps(g);
+    };
+    fetchData();
+  }, []);
 
   const years = [2020, 2021, 2022, 2023, 2024];
 
@@ -33,7 +45,7 @@ export const InsightsPage: React.FC<InsightsPageProps> = ({ onNavigateToPlanner 
   // Calculate syllabus coverage percentage
   const totalTopics = topics.length;
   const coveredTopics = topics.filter(t => t.has_lecture_notes).length;
-  const coveragePercent = Math.round((coveredTopics / totalTopics) * 100);
+  const coveragePercent = totalTopics === 0 ? 0 : Math.round((coveredTopics / totalTopics) * 100);
 
   return (
     <div className="space-y-8 pb-16">

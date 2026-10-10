@@ -23,8 +23,18 @@ export const BoardPage: React.FC<BoardPageProps> = ({
 }) => {
   // Live ticking countdown
   const [secondsRemaining, setSecondsRemaining] = useState(72 * 3600 + 14 * 60 + 22);
+  const [topics, setTopics] = useState<any[]>([]);
+  const [isMock, setIsMock] = useState(false);
 
   useEffect(() => {
+    const fetchTopics = async () => {
+      const t = await import('../services/api').then(m => m.api.getTopics());
+      setTopics(t);
+      const mockState = await import('../services/api').then(m => m.api.getIsMock());
+      setIsMock(mockState);
+    };
+    fetchTopics();
+    
     const timer = setInterval(() => {
       setSecondsRemaining(prev => Math.max(0, prev - 1));
     }, 1000);
@@ -260,14 +270,14 @@ export const BoardPage: React.FC<BoardPageProps> = ({
             </div>
 
             <div className="space-y-3">
-              {MOCK_TOPICS.slice(0, 4).map((t, i) => (
+              {topics.slice(0, 4).map((t, i) => (
                 <div key={t.id} className="space-y-1">
                   <div className="flex justify-between text-xs font-mono">
                     <span className="text-white font-medium">
                       #{i + 1} {t.name}
                     </span>
                     <span className="font-bold text-[#FF3B30]">
-                      {t.priority_score.toFixed(2)} M/HR
+                      {t.priority_score?.toFixed(2) || '0.00'} M/HR
                     </span>
                   </div>
                   {/* Progress bar */}
@@ -275,14 +285,14 @@ export const BoardPage: React.FC<BoardPageProps> = ({
                     <div 
                       className="h-full transition-all duration-500"
                       style={{ 
-                        width: `${(t.priority_score / 10) * 100}%`,
+                        width: `${((t.priority_score || 0) / 10) * 100}%`,
                         backgroundColor: t.color 
                       }}
                     />
                   </div>
                   <div className="flex justify-between text-[10px] font-mono text-slate-500">
-                    <span>{t.total_marks_historical} total marks historical</span>
-                    <span>{t.effort_hours}h estimated effort</span>
+                    <span>{t.total_marks_historical || 0} total marks historical</span>
+                    <span>{t.effort_hours || 0}h estimated effort</span>
                   </div>
                 </div>
               ))}

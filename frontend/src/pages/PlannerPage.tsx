@@ -10,22 +10,40 @@ import { MOCK_STUDY_TASKS } from '../mocks';
 export const PlannerPage: React.FC = () => {
   const [daysLeft, setDaysLeft] = useState<number>(3);
   const [hoursPerDay, setHoursPerDay] = useState<number>(4.0);
-  const [tasks, setTasks] = useState<StudyTask[]>(MOCK_STUDY_TASKS);
+  const [tasks, setTasks] = useState<StudyTask[]>([]);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [streakDays, setStreakDays] = useState<number>(4);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        const t = await api.generatePlan(daysLeft, hoursPerDay);
+        setTasks(t);
+        setErrorMsg(null);
+      } catch (e: any) {
+        setErrorMsg(e.message || 'Failed to generate plan');
+      }
+    };
+    fetchTasks();
+  }, []);
 
   const handleToggleTask = async (taskId: string) => {
-    const updated = await api.toggleTask(taskId);
-    setTasks(updated);
+    await api.toggleTask(taskId);
+    setTasks(tasks.map(t => t.id === taskId ? { ...t, completed: !t.completed } : t));
   };
 
   const handleBuildPlan = async () => {
     setIsGenerating(true);
-    setTimeout(async () => {
+    try {
       const generated = await api.generatePlan(daysLeft, hoursPerDay);
       setTasks(generated);
+      setErrorMsg(null);
+    } catch (e: any) {
+      setErrorMsg(e.message || 'Failed to generate plan');
+    } finally {
       setIsGenerating(false);
-    }, 600);
+    }
   };
 
   // Metrics
@@ -120,7 +138,7 @@ export const PlannerPage: React.FC = () => {
           </div>
 
           {/* Generate Button */}
-          <div className="md:col-span-4 flex justify-end">
+          <div className="md:col-span-4 flex flex-col items-end gap-2">
             <button
               onClick={handleBuildPlan}
               disabled={isGenerating}
@@ -129,6 +147,9 @@ export const PlannerPage: React.FC = () => {
               <Sparkles size={14} className={isGenerating ? 'animate-spin' : ''} />
               <span>{isGenerating ? 'OPTIMIZING SCHEDULE...' : 'RE-BUILD STUDY PLAN'}</span>
             </button>
+            {errorMsg && (
+              <span className="text-[10px] text-amber-400 font-mono font-bold animate-pulse">{errorMsg}</span>
+            )}
           </div>
 
         </div>

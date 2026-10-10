@@ -9,14 +9,24 @@ import { Flashcard, Question } from '../types';
 import { MOCK_FLASHCARDS, MOCK_QUESTIONS } from '../mocks';
 
 export const CardsPage: React.FC = () => {
-  const [cards, setCards] = useState<Flashcard[]>(MOCK_FLASHCARDS);
+  const [cards, setCards] = useState<Flashcard[]>([]);
+  const [questions, setQuestions] = useState<Question[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [isFlipped, setIsFlipped] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  useEffect(() => {
+    const fetchData = async () => {
+      const apiModule = await import('../services/api');
+      setCards(await apiModule.api.getFlashcards());
+      setQuestions(await apiModule.api.getQuestions());
+    };
+    fetchData();
+  }, []);
+
   const activeCard = cards[currentIndex] || cards[0];
   const linkedQuestion = activeCard?.linked_question_id 
-    ? MOCK_QUESTIONS.find(q => q.id === activeCard.linked_question_id)
+    ? questions.find(q => q.id === activeCard.linked_question_id)
     : null;
 
   // Keyboard navigation: Space = flip, Left/Right = nav, G = got it
@@ -57,24 +67,32 @@ export const CardsPage: React.FC = () => {
   };
 
   const handleExportAnki = async () => {
-    const csv = await api.exportContent('anki');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'examlens_flashcards.csv';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-
-    showToast('Exported Anki CSV deck successfully!');
+    try {
+      await api.exportContent('anki');
+      showToast('Exported Anki CSV deck successfully!');
+    } catch (e: any) {
+      showToast(e.message || 'Export failed');
+    }
   };
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 2500);
   };
+
+  if (!cards.length) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
+        <div className="w-16 h-16 bg-[#161B22] border border-[#1F2937] flex items-center justify-center rounded-full">
+          <CreditCard size={24} className="text-slate-500" />
+        </div>
+        <h2 className="text-xl font-display text-white tracking-wider">NO FLASHCARDS DETECTED</h2>
+        <p className="text-slate-400 font-mono text-xs max-w-md">
+          Upload a document to generate Flashcards through the NLP pipeline.
+        </p>
+      </div>
+    );
+  }
 
   // Metrics
   const masteredCount = cards.filter(c => c.mastered).length;

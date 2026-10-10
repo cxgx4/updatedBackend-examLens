@@ -24,6 +24,15 @@ export function App() {
   const [isExportOpen, setIsExportOpen] = useState<boolean>(false);
   const [isDemoActive, setIsDemoActive] = useState<boolean>(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState<boolean>(false);
+  const [isMockWorkspace, setIsMockWorkspace] = useState<boolean>(api.getIsMock());
+
+  // Subscribe to connection state
+  useEffect(() => {
+    const unsubscribe = api.onConnectionChange((isConnected) => {
+      setIsMockWorkspace(!isConnected);
+    });
+    return unsubscribe;
+  }, []);
 
   // Global keydown listeners for shortcuts
   useEffect(() => {
@@ -63,7 +72,7 @@ export function App() {
         onOpenExport={() => setIsExportOpen(true)}
         onStartDemo={handleStartDemo}
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
-        isMockWorkspace={api.getIsMock()}
+        isMockWorkspace={isMockWorkspace}
       />
 
       {/* Red Marquee Ticker */}

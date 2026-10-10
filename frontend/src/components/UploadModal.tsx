@@ -78,7 +78,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({
 
     try {
       // Step 1: Upload to backend
-      const uploadRes = await api.uploadFile(selectedFile, docType, lectureDate);
+      const uploadRes = await api.uploadFile([selectedFile], docType, lectureDate);
       setLogs(prev => [
         ...prev, 
         `[INGEST SUCCESS] Document ID: ${uploadRes.document_id}, Pages: ${uploadRes.source_pages || 1}`,
