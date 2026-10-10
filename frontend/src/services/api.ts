@@ -24,7 +24,7 @@ class ApiClient {
   private currentDocId: number = 1;
 
   constructor() {
-    this.baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    this.baseUrl = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:8000');
     this.checkHealth();
     // Recheck health periodically
     setInterval(() => this.checkHealth(), 30000);
