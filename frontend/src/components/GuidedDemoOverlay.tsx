@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, SkipForward, ArrowRight, X, Sparkles, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, X, Sparkles, Compass, Check } from 'lucide-react';
 import { NavTab } from './Navbar';
 
 interface GuidedDemoOverlayProps {
@@ -15,45 +15,43 @@ export const GuidedDemoOverlay: React.FC<GuidedDemoOverlayProps> = ({
   isActive,
   onClose,
   onNavigateTab,
-  onOpenUpload,
-  onOpenExport,
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
 
   const demoSteps = [
     {
-      title: 'STEP 1: BOARD TO NOTE ENGINE',
+      title: 'Lecture Notes & Equations',
       tab: 'notes' as NavTab,
-      summary: 'Upload 3 board photos -> perspective warp & homography -> glare/shadow removal -> region segmentation -> word-level OCR confidence & KaTeX equations.',
-      actionLabel: 'Inspect OCR & Equation Diff',
+      summary:
+        'Upload your blackboard photos. We straighten the perspective, remove glare, and extract readable text and math formulas.',
       action: () => onNavigateTab('notes'),
     },
     {
-      title: 'STEP 2: PAST PAPERS & RECURRENCE PATTERNS',
+      title: 'Recurrence Heatmap',
       tab: 'insights' as NavTab,
-      summary: 'Exam Engine extracts questions, marks, and repeat counts ("asked 4x"). The Recurrence Heatmap exposes historical patterns across 5 exam years.',
-      actionLabel: 'View Recurrence Heatmap',
+      summary:
+        'Discover which syllabus topics appear most often in past exams and see your historical question streaks.',
       action: () => onNavigateTab('insights'),
     },
     {
-      title: 'STEP 3: SHARED TOPIC GRAPH & COVERAGE GAPS',
+      title: 'Topic Map & Coverage Gaps',
       tab: 'graph' as NavTab,
-      summary: 'Shared Topic Graph links notes & questions. It flags high-frequency topics that have NO lecture notes (e.g. Unit 4 Indexing & B-Trees, 28 historical marks).',
-      actionLabel: 'Explore Interactive Graph',
+      summary:
+        'Explore connections between curriculum prerequisites and spot topics tested in past papers that still need notes.',
       action: () => onNavigateTab('graph'),
     },
     {
-      title: 'STEP 4: PRIORITIZED STUDY PLANNER',
+      title: 'Study Planner',
       tab: 'planner' as NavTab,
-      summary: 'Set days left (72H) and hours/day -> Ranks topics by Marks/Hour of effort and automatically inserts critical coverage gap study tasks.',
-      actionLabel: 'Review Day-by-Day Plan',
+      summary:
+        'Set your days left and daily study hours to get a prioritized revision schedule balanced for maximum exam marks.',
       action: () => onNavigateTab('planner'),
     },
     {
-      title: 'STEP 5: TIMED MOCK EXAM & 3D FLASHCARDS',
+      title: 'Practice & Flashcards',
       tab: 'mock' as NavTab,
-      summary: 'Real exam-simulation with 90-min countdown timer, answer-length recommendations (2/5/10 marks), sample answers, and Anki CSV spaced repetition cards.',
-      actionLabel: 'Launch Mock Exam',
+      summary:
+        'Test your memory with active recall flashcards, timed practice papers, and model answer length guides.',
       action: () => onNavigateTab('mock'),
     },
   ];
@@ -77,65 +75,70 @@ export const GuidedDemoOverlay: React.FC<GuidedDemoOverlayProps> = ({
   const activeStepData = demoSteps[currentStep];
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 max-w-md w-full">
+    <div className="fixed bottom-6 right-6 z-50 max-w-sm w-full px-4 sm:px-0">
       <motion.div
-        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+        initial={{ opacity: 0, y: 16, scale: 0.96 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 20, scale: 0.95 }}
-        className="bg-[#0D1117] border-2 border-[#FF3B30] p-5 shadow-2xl relative overflow-hidden"
+        exit={{ opacity: 0, y: 16, scale: 0.96 }}
+        className="bg-bg rounded-card border border-border p-5 sm:p-6 shadow-warm-lg space-y-4"
       >
-        {/* Glowing laser top bar */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#FF3B30] via-amber-400 to-[#FF3B30] animate-pulse"></div>
-
         {/* Header */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[#FF3B30] animate-ping"></span>
-            <span className="text-[11px] font-mono uppercase tracking-widest text-[#FF3B30] font-bold flex items-center gap-1">
-              <Sparkles size={12} />
-              5-MINUTE LIVE STORY DEMO ({currentStep + 1}/{demoSteps.length})
-            </span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-primary-text bg-peach/70 px-3 py-1 rounded-pill">
+            <Compass size={13} className="text-primary" />
+            <span>Tour Step {currentStep + 1} of {demoSteps.length}</span>
           </div>
-          <button onClick={handleSkip} className="text-slate-400 hover:text-white">
+
+          <button
+            onClick={handleSkip}
+            aria-label="Exit tour"
+            className="w-7 h-7 rounded-pill bg-grey-card hover:bg-border/60 flex items-center justify-center text-ink-soft transition-colors"
+          >
             <X size={14} />
           </button>
         </div>
 
         {/* Content */}
-        <h3 className="font-display text-xl tracking-wide text-white mb-1.5">
-          {activeStepData.title}
-        </h3>
-        <p className="text-xs text-slate-300 leading-relaxed font-sans mb-4">
-          {activeStepData.summary}
-        </p>
+        <div>
+          <h3 className="text-lg font-bold text-ink">
+            {activeStepData.title}
+          </h3>
+          <p className="text-xs text-ink-soft leading-relaxed mt-1.5">
+            {activeStepData.summary}
+          </p>
+        </div>
 
-        {/* Progress pills */}
-        <div className="grid grid-cols-5 gap-1.5 mb-4">
+        {/* Step progress dots */}
+        <div className="flex items-center gap-1.5">
           {demoSteps.map((_, i) => (
-            <div 
-              key={i} 
-              className={`h-1.5 transition-all ${
-                i <= currentStep ? 'bg-[#FF3B30]' : 'bg-slate-800'
+            <div
+              key={i}
+              className={`h-1.5 rounded-pill transition-all ${
+                i === currentStep
+                  ? 'w-6 bg-primary'
+                  : i < currentStep
+                  ? 'w-2 bg-primary/40'
+                  : 'w-2 bg-border'
               }`}
             />
           ))}
         </div>
 
         {/* Actions */}
-        <div className="flex items-center justify-between pt-2 border-t border-[#1F2937]">
+        <div className="flex items-center justify-between pt-3 border-t border-border/70">
           <button
             onClick={handleSkip}
-            className="text-[11px] font-mono text-slate-400 hover:text-white"
+            className="text-xs font-semibold text-ink-soft hover:text-ink transition-colors"
           >
-            Exit Guided Tour
+            Skip tour
           </button>
 
           <button
             onClick={handleNext}
-            className="flex items-center gap-1.5 px-4 py-1.5 bg-[#FF3B30] hover:bg-[#E02D23] text-white text-xs font-mono font-bold tracking-wider shadow-laser transition-all"
+            className="flex items-center gap-1.5 px-5 py-2 bg-primary hover:bg-primary-hover text-on-primary text-xs font-bold rounded-pill shadow-warm transition-transform active:scale-95"
           >
-            <span>{currentStep === demoSteps.length - 1 ? 'FINISH' : 'NEXT STEP'}</span>
-            <ArrowRight size={12} />
+            <span>{currentStep === demoSteps.length - 1 ? 'Finish tour' : 'Next'}</span>
+            <ArrowRight size={13} />
           </button>
         </div>
       </motion.div>
