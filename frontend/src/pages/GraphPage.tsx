@@ -3,13 +3,9 @@ import * as d3 from 'd3';
 import { 
   RotateCcw, 
   AlertTriangle, 
-  FileText, 
   X, 
-  ExternalLink, 
   Network, 
   List, 
-  HelpCircle,
-  FileQuestion,
   ChevronRight
 } from 'lucide-react';
 import { GraphNode, GraphLink, Topic, Question, Note } from '../types';
@@ -19,7 +15,12 @@ export const GraphPage: React.FC = () => {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  const [viewMode, setViewMode] = useState<'graph' | 'list'>('graph');
+  const [viewMode, setViewMode] = useState<'graph' | 'list'>(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 640) {
+      return 'list';
+    }
+    return 'graph';
+  });
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
 
   const [nodesData, setNodesData] = useState<GraphNode[]>([]);
@@ -47,13 +48,6 @@ export const GraphPage: React.FC = () => {
       }
     };
     fetchData();
-  }, []);
-
-  // Responsive switch: default to list view on small screens (< 640px)
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.innerWidth < 640) {
-      setViewMode('list');
-    }
   }, []);
 
   useEffect(() => {

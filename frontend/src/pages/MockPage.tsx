@@ -11,8 +11,7 @@ import {
   Filter, 
   ChevronLeft, 
   ChevronRight,
-  BookOpen,
-  FileText
+  BookOpen
 } from 'lucide-react';
 import { Question } from '../types';
 import { api } from '../services/api';

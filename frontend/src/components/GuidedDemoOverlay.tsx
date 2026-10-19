@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, X, Sparkles, Compass, Check } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { ArrowRight, X, Compass } from 'lucide-react';
 import { NavTab } from './Navbar';
 
 interface GuidedDemoOverlayProps {

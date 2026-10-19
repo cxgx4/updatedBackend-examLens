@@ -4,12 +4,9 @@ import confetti from 'canvas-confetti';
 import { 
   RotateCw, 
   CheckCircle2, 
-  Circle, 
   ArrowLeft, 
   ArrowRight, 
   Download, 
-  Sparkles, 
-  HelpCircle,
   FileQuestion,
   Layers
 } from 'lucide-react';

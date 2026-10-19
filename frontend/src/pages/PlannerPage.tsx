@@ -1,16 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Calendar, 
   CheckCircle2, 
   Circle, 
   AlertTriangle, 
   Clock, 
   Sparkles, 
-  Flame, 
-  RefreshCw, 
-  Check, 
-  ArrowRight,
-  BookOpen
+  Flame 
 } from 'lucide-react';
 import { api } from '../services/api';
 import { StudyTask } from '../types';

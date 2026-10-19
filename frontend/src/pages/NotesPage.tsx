@@ -6,9 +6,7 @@ import {
   CheckCircle2, 
   Sparkles, 
   Layers, 
-  Clock, 
   Calendar, 
-  ChevronRight,
   Info,
   CheckCheck
 } from 'lucide-react';

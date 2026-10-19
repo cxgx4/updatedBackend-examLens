@@ -15,9 +15,7 @@ import {
   ChevronDown, 
   ChevronUp, 
   Camera, 
-  Layers, 
-  Calendar,
-  Sparkles
+  Calendar
 } from 'lucide-react';
 import { DocType } from '../types';
 import { api } from '../services/api';
@@ -35,9 +33,9 @@ export const UploadModal: React.FC<UploadModalProps> = ({
 }) => {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [docType, setDocType] = useState<DocType>('lecture_board');
-  const [lectureDate, setLectureDate] = useState<string>(
-    new Date().toISOString().split('T')[0]
-  );
+  const [lectureDate, setLectureDate] = useState<string>(() => {
+    return new Date().toISOString().split('T')[0];
+  });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
@@ -47,7 +45,6 @@ export const UploadModal: React.FC<UploadModalProps> = ({
   const [showTechnicalDetails, setShowTechnicalDetails] = useState<boolean>(false);
   const [sliderPosition, setSliderPosition] = useState<number>(50);
   const [showRegions, setShowRegions] = useState<boolean>(true);
-  const [activeRegionFilter, setActiveRegionFilter] = useState<'all' | 'text' | 'diagram' | 'equation'>('all');
   const [logs, setLogs] = useState<string[]>([]);
   const [thumbnails, setThumbnails] = useState<string[]>([
     '/mock/thumb_page_1.png',
@@ -205,7 +202,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({
     ]);
   };
 
-  const handleResetModal = () => {
+  const handleClose = () => {
     setStep(1);
     setSelectedFile(null);
     setIsUploading(false);
@@ -213,6 +210,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({
     setCurrentStepIndex(0);
     setUploadSuccess(false);
     setErrorMessage(null);
+    onClose();
   };
 
   if (!isOpen) return null;
@@ -248,7 +246,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({
           </div>
 
           <button
-            onClick={onClose}
+            onClick={handleClose}
             aria-label="Close dialog"
             className="w-9 h-9 flex items-center justify-center rounded-pill bg-grey-card hover:bg-border/60 text-ink-soft transition-colors"
           >
@@ -574,7 +572,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="px-4 py-2 text-xs font-semibold text-ink-soft hover:text-ink transition-colors"
             >
               {uploadSuccess ? 'Done' : 'Cancel'}

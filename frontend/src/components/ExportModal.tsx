@@ -9,25 +9,14 @@ interface ExportModalProps {
 
 export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => {
   const [selectedFormat, setSelectedFormat] = useState<'markdown' | 'pdf' | 'anki'>('markdown');
-  const [previewContent, setPreviewContent] = useState<string>('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isCopied, setIsCopied] = useState<boolean>(false);
-
-  React.useEffect(() => {
-    if (isOpen) {
-      loadPreview(selectedFormat);
-    }
-  }, [isOpen, selectedFormat]);
-
-  const loadPreview = async (format: 'markdown' | 'pdf' | 'anki') => {
-    const preview =
-      format === 'markdown'
-        ? `# ExamLens Master Study Notes\n\n## Normalization & BCNF\nFunctional dependencies and loss-less decomposition...\n\n$$ X \\rightarrow Y \\iff \\forall t_1, t_2 \\in r(R), [t_1[X] = t_2[X] \\implies t_1[Y] = t_2[Y]] $$`
-        : format === 'anki'
-        ? 'front,back,tags\nWhat is 1NF?,Atomic values only,dbms\nWhat is BCNF?,Every determinant is a candidate key,dbms'
-        : 'PDF cheatsheet ready with formatted KaTeX formulas and board summaries...';
-    setPreviewContent(preview);
-  };
+  const previewContent =
+    selectedFormat === 'markdown'
+      ? `# ExamLens Master Study Notes\n\n## Normalization & BCNF\nFunctional dependencies and loss-less decomposition...\n\n$$ X \\rightarrow Y \\iff \\forall t_1, t_2 \\in r(R), [t_1[X] = t_2[X] \\implies t_1[Y] = t_2[Y]] $$`
+      : selectedFormat === 'anki'
+      ? 'front,back,tags\nWhat is 1NF?,Atomic values only,dbms\nWhat is BCNF?,Every determinant is a candidate key,dbms'
+      : 'PDF cheatsheet ready with formatted KaTeX formulas and board summaries...';
 
   const handleDownload = async () => {
     try {

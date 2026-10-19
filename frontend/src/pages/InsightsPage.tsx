@@ -1,24 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  TrendingUp, 
-  Calendar, 
   AlertTriangle, 
   CheckCircle2, 
-  ArrowRight, 
   Filter, 
-  Plus,
-  Flame,
-  Award,
-  Sparkles
+  Plus
 } from 'lucide-react';
 import { api } from '../services/api';
 import { Topic, CoverageGapItem } from '../types';
 
 interface InsightsPageProps {
-  onNavigateToPlanner: () => void;
+  onNavigateToPlanner?: () => void;
 }
 
-export const InsightsPage: React.FC<InsightsPageProps> = ({ onNavigateToPlanner }) => {
+export const InsightsPage: React.FC<InsightsPageProps> = ({ onNavigateToPlanner: _onNavigateToPlanner }) => {
   const [topics, setTopics] = useState<Topic[]>([]);
   const [heatmap, setHeatmap] = useState<any[]>([]);
   const [coverageGaps, setCoverageGaps] = useState<CoverageGapItem[]>([]);

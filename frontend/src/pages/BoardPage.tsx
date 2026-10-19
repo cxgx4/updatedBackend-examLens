@@ -2,14 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { 
   Clock, 
   ArrowRight, 
-  BookOpen, 
-  CreditCard, 
-  Sparkles, 
   Upload, 
   Compass, 
-  Flame, 
-  TrendingUp,
-  CheckCircle2
+  Flame 
 } from 'lucide-react';
 import { NavTab } from '../components/Navbar';
 import { api } from '../services/api';
