@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Navbar, NavTab } from './components/Navbar';
-import { MarqueeTicker } from './components/MarqueeTicker';
-import { CustomCursor } from './components/CustomCursor';
+import { Logo } from './components/Logo';
+import { SegmentedControl } from './components/SegmentedControl';
 import { CommandPalette } from './components/CommandPalette';
 import { ExportModal } from './components/ExportModal';
 import { UploadModal } from './components/UploadModal';
@@ -16,6 +16,7 @@ import { PlannerPage } from './pages/PlannerPage';
 import { MockPage } from './pages/MockPage';
 import { CardsPage } from './pages/CardsPage';
 
+import { Sparkles, CreditCard, Calendar, BarChart3 } from 'lucide-react';
 import { api } from './services/api';
 
 export function App() {
@@ -34,13 +35,12 @@ export function App() {
     return unsubscribe;
   }, []);
 
-  // Global keydown listeners for shortcuts
+  // Global keydown listeners for shortcuts (Cmd/Ctrl + K)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Cmd/Ctrl + K opens Command Palette
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
-        setIsCommandPaletteOpen(prev => !prev);
+        setIsCommandPaletteOpen((prev) => !prev);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -52,18 +52,12 @@ export function App() {
     setCurrentTab('notes');
   };
 
+  const isPracticeActive = currentTab === 'cards' || currentTab === 'mock';
+  const isPlanActive = currentTab === 'planner' || currentTab === 'insights';
+
   return (
-    <div className="min-h-screen bg-[#07090D] text-[#E2E8F0] flex flex-col relative selection:bg-[#FF3B30] selection:text-white">
+    <div className="min-h-screen bg-bg text-ink flex flex-col relative selection:bg-primary-tint selection:text-primary-text font-sans">
       
-      {/* Background Film Grain Overlay */}
-      <div className="fixed inset-0 bg-grain pointer-events-none z-30" />
-
-      {/* Blueprint Grid Lines Overlay */}
-      <div className="fixed inset-0 bg-grid-lines pointer-events-none opacity-40 z-0" />
-
-      {/* Custom Tactical Cursor */}
-      <CustomCursor />
-
       {/* Sticky Top Navigation */}
       <Navbar
         currentTab={currentTab}
@@ -75,18 +69,56 @@ export function App() {
         isMockWorkspace={isMockWorkspace}
       />
 
-      {/* Red Marquee Ticker */}
-      <MarqueeTicker />
+      {/* Main Content Container (1200px max, student-friendly 8pt spacing) */}
+      <main className="flex-1 max-w-[1200px] w-full mx-auto px-4 sm:px-6 md:px-8 pt-6 pb-28 md:pb-16 z-10">
+        
+        {/* Practice Group Container (Cards | Mock Questions) */}
+        {isPracticeActive && (
+          <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-ink">Practice</h1>
+              <p className="text-ink-soft text-sm sm:text-base mt-0.5">
+                Test your understanding with active recall and practice questions.
+              </p>
+            </div>
+            <SegmentedControl
+              value={currentTab === 'mock' ? 'mock' : 'cards'}
+              onChange={(val) => setCurrentTab(val)}
+              options={[
+                { id: 'cards', label: 'Flashcards', icon: CreditCard },
+                { id: 'mock', label: 'Practice questions', icon: Sparkles },
+              ]}
+            />
+          </div>
+        )}
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-6 pt-6 z-10">
+        {/* Plan Group Container (Study Plan | Progress & Insights) */}
+        {isPlanActive && (
+          <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-ink">Study Plan</h1>
+              <p className="text-ink-soft text-sm sm:text-base mt-0.5">
+                Organize your study days and monitor your syllabus coverage.
+              </p>
+            </div>
+            <SegmentedControl
+              value={currentTab === 'insights' ? 'insights' : 'planner'}
+              onChange={(val) => setCurrentTab(val)}
+              options={[
+                { id: 'planner', label: 'Study plan', icon: Calendar },
+                { id: 'insights', label: 'Progress & insights', icon: BarChart3 },
+              ]}
+            />
+          </div>
+        )}
+
         <AnimatePresence mode="wait">
           <motion.div
             key={currentTab}
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
           >
             {currentTab === 'board' && (
               <BoardPage
@@ -108,27 +140,28 @@ export function App() {
         </AnimatePresence>
       </main>
 
-      {/* Tactical Engineering Footer */}
-      <footer className="w-full border-t border-[#1F2937] bg-[#07090D] py-6 px-4 sm:px-6 z-10 text-xs font-mono text-slate-500">
-        <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <span className="font-display text-lg text-white tracking-wider">EXAMLENS</span>
-            <span>•</span>
-            <span>7TH SEMESTER STUDY-INTELLIGENCE CAPSTONE (6 CREDITS)</span>
+      {/* Warm Student-First Footer */}
+      <footer className="w-full border-t border-border bg-bg-cream/60 py-6 px-4 sm:px-6 mt-auto">
+        <div className="max-w-[1200px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs sm:text-sm text-ink-soft">
+          <div className="flex items-center gap-2.5">
+            <Logo size="sm" />
+            <span className="text-ink-faint">•</span>
+            <span className="font-medium text-ink">Made for students</span>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-4 text-[11px]">
-            <span>MEMBER 1: VISION</span>
-            <span>MEMBER 2: OCR & MATH</span>
-            <span>MEMBER 3: PARSER</span>
-            <span>MEMBER 4: NLP & TOPICS</span>
-            <span>MEMBER 5: ANALYTICS</span>
-            <span>MEMBER 6: INTEGRATION</span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-            <span className="text-slate-400">FASTAPI + SQLITE ARCHITECTURE</span>
+          <div className="flex items-center gap-6">
+            <button
+              onClick={() => setIsExportOpen(true)}
+              className="hover:text-primary transition-colors font-medium"
+            >
+              Export
+            </button>
+            <button
+              onClick={handleStartDemo}
+              className="hover:text-primary transition-colors font-medium"
+            >
+              Take a tour
+            </button>
           </div>
         </div>
       </footer>
