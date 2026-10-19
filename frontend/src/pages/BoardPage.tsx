@@ -1,340 +1,294 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { 
-  Clock, Zap, CheckCircle2, AlertTriangle, ArrowRight, 
-  Layers, FileText, BarChart3, Share2, Calendar, HelpCircle, 
-  CreditCard, Download, Sparkles, ExternalLink
+  Clock, 
+  ArrowRight, 
+  BookOpen, 
+  CreditCard, 
+  Sparkles, 
+  Upload, 
+  Compass, 
+  Flame, 
+  TrendingUp,
+  CheckCircle2
 } from 'lucide-react';
 import { NavTab } from '../components/Navbar';
-import { MOCK_TOPICS, MOCK_QUESTIONS, MOCK_COVERAGE_GAPS } from '../mocks';
+import { api } from '../services/api';
 
 interface BoardPageProps {
   onSelectTab: (tab: NavTab) => void;
   onOpenUpload: () => void;
-  onOpenExport: () => void;
+  onOpenExport?: () => void;
   onStartDemo: () => void;
 }
 
 export const BoardPage: React.FC<BoardPageProps> = ({
   onSelectTab,
   onOpenUpload,
-  onOpenExport,
   onStartDemo,
 }) => {
-  // Live ticking countdown
+  // Live ticking countdown to exam
   const [secondsRemaining, setSecondsRemaining] = useState(72 * 3600 + 14 * 60 + 22);
   const [topics, setTopics] = useState<any[]>([]);
-  const [isMock, setIsMock] = useState(false);
 
   useEffect(() => {
     const fetchTopics = async () => {
-      const t = await import('../services/api').then(m => m.api.getTopics());
-      setTopics(t);
-      const mockState = await import('../services/api').then(m => m.api.getIsMock());
-      setIsMock(mockState);
+      try {
+        const t = await api.getTopics();
+        setTopics(t || []);
+      } catch (err) {
+        console.warn('Could not fetch topics:', err);
+      }
     };
     fetchTopics();
-    
+
     const timer = setInterval(() => {
-      setSecondsRemaining(prev => Math.max(0, prev - 1));
+      setSecondsRemaining((prev) => Math.max(0, prev - 1));
     }, 1000);
     return () => clearInterval(timer);
   }, []);
 
   const hours = Math.floor(secondsRemaining / 3600);
   const minutes = Math.floor((secondsRemaining % 3600) / 60);
-  const seconds = secondsRemaining % 60;
 
-  const pipeline = [
-    { name: 'UPLOAD', desc: 'PDF / Multi-Image', status: 'COMPLETE' },
-    { name: 'MERGE', desc: 'img2pdf + EXIF', status: 'COMPLETE' },
-    { name: 'WARP', desc: 'Homography Rectify', status: 'COMPLETE' },
-    { name: 'CLEAN', desc: 'CLAHE De-glare', status: 'ACTIVE' },
-    { name: 'SEGMENT', desc: 'Text / Math / Fig', status: 'READY' },
-    { name: 'OCR', desc: 'Word Conf + KaTeX', status: 'READY' },
-    { name: 'TOPICS', desc: 'NLP Embeddings', status: 'READY' },
-    { name: 'PLAN', desc: 'Marks/Effort Graph', status: 'READY' },
-  ];
+  // Top 3 priority / weak topics to study next
+  const studyNext = [...topics]
+    .sort((a, b) => (b.priority_score || 0) - (a.priority_score || 0))
+    .slice(0, 3);
 
   return (
-    <div className="space-y-8 pb-16">
+    <div className="space-y-12 sm:space-y-16 pb-12">
       
-      {/* ── HERO BANNER ──────────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden border border-[#1F2937] bg-gradient-to-b from-[#0D1117] to-[#07090D] p-6 sm:p-10">
+      {/* ── HERO SECTION ──────────────────────────────────────────────────────── */}
+      <section className="relative overflow-hidden rounded-card-lg bg-hero-gradient border border-border/70 p-6 sm:p-10 md:p-14 shadow-warm">
         
-        {/* Subtle radial red glow */}
-        <div className="absolute top-1/2 left-1/3 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] bg-[#FF3B30]/10 rounded-full blur-[100px] pointer-events-none" />
+        {/* Soft Background Accent Blobs */}
+        <div className="absolute top-0 right-0 w-72 h-72 bg-primary/10 rounded-full blur-3xl pointer-events-none -mr-16 -mt-16" />
+        <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-accent/5 rounded-full blur-3xl pointer-events-none" />
 
-        {/* Giant Faded Countdown Background */}
-        <div className="absolute -right-6 -bottom-10 font-display text-[160px] sm:text-[220px] font-bold text-white/[0.03] select-none pointer-events-none tracking-tight leading-none">
-          {hours}H
-        </div>
-
-        <div className="relative z-10 max-w-4xl space-y-4">
+        <div className="relative z-10 max-w-2xl space-y-5">
           
-          {/* Micro Status Bar */}
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="px-2 py-0.5 bg-[#FF3B30]/20 text-[#FF3B30] border border-[#FF3B30]/40 font-mono text-[10px] uppercase tracking-widest font-bold">
-              SYSTEM ONLINE
-            </span>
-            <span className="px-2 py-0.5 bg-[#0D1117] text-slate-400 border border-[#1F2937] font-mono text-[10px] uppercase tracking-widest">
-              EXAMLENS AI PIPELINE V1.0
-            </span>
-            <span className="px-2 py-0.5 bg-emerald-950/60 text-emerald-400 border border-emerald-800 font-mono text-[10px] uppercase tracking-widest flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              SHARED GRAPH READY
+          {/* Compact Exam Countdown Chip */}
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-bg/90 backdrop-blur-sm border border-border text-ink rounded-pill text-xs font-semibold shadow-xs">
+            <Clock size={14} className="text-primary" />
+            <span>
+              <strong className="text-primary-text font-bold">{hours}h {minutes}m</strong> until your exam
             </span>
           </div>
 
-          {/* Punchy Animated Display Headline */}
-          <h1 className="font-display text-4xl sm:text-6xl lg:text-7xl tracking-wide text-white uppercase leading-[0.95]">
-            TURN YOUR CHAOS INTO A <span className="text-[#FF3B30] underline decoration-[#FF3B30]/40 decoration-4 underline-offset-8">STUDY PLAN.</span>
+          {/* Friendly Bold Headline */}
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-ink leading-[1.08]">
+            Let’s get you <span className="text-primary">exam-ready.</span>
           </h1>
 
-          <p className="text-sm sm:text-base text-slate-300 max-w-2xl font-sans leading-relaxed">
-            ExamLens stitches lecture-board photos and past question papers into one connected study engine. 
-            Homography warping, word-level OCR confidence, KaTeX equations, repeat detection, and prioritized revision.
+          <p className="text-base sm:text-lg text-ink-soft leading-relaxed">
+            Snap your lecture boards or upload past papers. We’ll organize your notes, build flashcards, and make a plan so you know exactly what to study.
           </p>
 
-          {/* Countdown & Quick Action Buttons */}
-          <div className="pt-2 flex flex-wrap items-center gap-4">
-            
-            {/* Live Ticking Box */}
-            <div className="flex items-center gap-2 px-3 py-2 bg-[#040608] border border-[#1F2937]">
-              <Clock size={16} className="text-[#FF3B30] animate-pulse" />
-              <div className="font-mono text-sm tracking-widest text-white font-bold">
-                <span>{String(hours).padStart(2, '0')}</span>H :{' '}
-                <span>{String(minutes).padStart(2, '0')}</span>M :{' '}
-                <span className="text-[#FF3B30]">{String(seconds).padStart(2, '0')}</span>S
-              </div>
-              <span className="text-[10px] font-mono text-slate-500 uppercase ml-1">TO EXAM</span>
-            </div>
-
+          {/* ONE Primary Action Pill & Tour link */}
+          <div className="pt-2 flex flex-wrap items-center gap-3">
             <button
               onClick={onOpenUpload}
-              className="flex items-center gap-2 px-5 py-2 bg-[#FF3B30] hover:bg-[#E02D23] text-white font-mono text-xs font-bold tracking-wider transition-all shadow-laser"
+              className="flex items-center justify-center gap-2.5 px-7 py-3.5 min-h-[52px] bg-primary hover:bg-primary-hover text-on-primary font-bold text-base rounded-pill shadow-warm transition-transform active:scale-95 focus-visible:ring-2 focus-visible:ring-primary-text"
             >
-              <Zap size={14} className="fill-white" />
-              <span>INGEST NEW PDF / PHOTOS</span>
+              <Upload size={18} strokeWidth={2.5} />
+              <span>Add your notes or a past paper</span>
             </button>
 
             <button
               onClick={onStartDemo}
-              className="flex items-center gap-1.5 px-4 py-2 bg-[#0D1117] hover:bg-[#161B22] border border-[#1F2937] text-slate-300 hover:text-white font-mono text-xs tracking-wider transition-all"
+              className="flex items-center justify-center gap-2 px-6 py-3.5 min-h-[52px] bg-bg hover:bg-bg-warm text-ink font-semibold text-sm rounded-pill border border-border shadow-xs transition-colors"
             >
-              <Sparkles size={13} className="text-[#FF3B30]" />
-              <span>RUN 5-MIN DEMO</span>
+              <Compass size={16} className="text-primary" />
+              <span>Take a quick tour</span>
             </button>
           </div>
-        </div>
 
-      </section>
-
-      {/* ── 8-STAGE PIPELINE STRIP ───────────────────────────────────────────── */}
-      <section className="bg-[#0D1117] border border-[#1F2937] p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 bg-[#FF3B30]"></span>
-            <h2 className="font-mono text-xs font-bold tracking-widest text-slate-300 uppercase">
-              END-TO-END PIPELINE ARCHITECTURE
-            </h2>
-          </div>
-          <span className="font-mono text-[10px] text-slate-500 uppercase">
-            MEMBER 1 → 6 MODULAR HANDOFFS
-          </span>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
-          {pipeline.map((step, idx) => {
-            const isActive = step.status === 'ACTIVE';
-            const isComplete = step.status === 'COMPLETE';
-            return (
-              <div
-                key={idx}
-                className={`p-2.5 border text-left font-mono transition-all relative overflow-hidden ${
-                  isActive 
-                    ? 'border-[#FF3B30] bg-[#FF3B30]/15 shadow-laser' 
-                    : isComplete 
-                    ? 'border-emerald-900 bg-emerald-950/20 text-emerald-300' 
-                    : 'border-[#1F2937] bg-[#07090D] text-slate-500'
-                }`}
-              >
-                <div className="flex items-center justify-between text-[10px] mb-1">
-                  <span className="opacity-60">0{idx + 1}</span>
-                  {isActive && <span className="w-1.5 h-1.5 rounded-full bg-[#FF3B30] animate-ping" />}
-                </div>
-                <div className={`text-xs font-bold ${isActive ? 'text-white' : isComplete ? 'text-emerald-300' : 'text-slate-400'}`}>
-                  {step.name}
-                </div>
-                <div className="text-[10px] opacity-75 truncate mt-0.5">
-                  {step.desc}
-                </div>
-              </div>
-            );
-          })}
         </div>
       </section>
 
-      {/* ── STATS COUNTER TILES ─────────────────────────────────────────────── */}
-      <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { label: 'SYLLABUS TOPICS', val: '6', sub: 'Indexed & Weighted', color: '#06B6D4' },
-          { label: 'PAST QUESTIONS', val: '8', sub: 'Extracted (2020–2024)', color: '#FF3B30' },
-          { label: 'AVG OCR CONFIDENCE', val: '94.2%', sub: 'Word-level verified', color: '#A3E635' },
-          { label: 'CRITICAL GAPS', val: '1', sub: 'Topic 4 has 0 notes', color: '#F59E0B' },
-        ].map((stat, i) => (
-          <div key={i} className="bg-[#0D1117] border border-[#1F2937] p-4 relative tactical-panel">
-            <div className="text-[10px] font-mono text-slate-400 uppercase tracking-wider mb-1">
-              {stat.label}
-            </div>
-            <div className="font-display text-3xl sm:text-4xl text-white tracking-wide" style={{ color: stat.color }}>
-              {stat.val}
-            </div>
-            <div className="text-[11px] font-mono text-slate-500 mt-1">
-              {stat.sub}
-            </div>
-          </div>
-        ))}
-      </section>
-
-      {/* ── BENTO-STYLE DASHBOARD GRID ───────────────────────────────────────── */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-        
-        {/* Panel 1: Lecture Board Ingestion status (6 cols) */}
-        <div className="md:col-span-6 bg-[#0D1117] border border-[#1F2937] p-5 flex flex-col justify-between tactical-panel">
+      {/* ── WHAT TO STUDY NEXT ──────────────────────────────────────────────── */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
           <div>
-            <div className="flex items-center justify-between mb-3 border-b border-[#1F2937] pb-2">
-              <div className="flex items-center gap-2">
-                <FileText size={15} className="text-[#06B6D4]" />
-                <h3 className="font-mono text-xs font-bold text-white tracking-wider uppercase">
-                  RECENT BOARD CAPTURE: LECTURE 14
-                </h3>
-              </div>
-              <button 
-                onClick={() => onSelectTab('notes')}
-                className="text-[11px] font-mono text-[#06B6D4] hover:underline flex items-center gap-1"
-              >
-                <span>OPEN NOTES</span>
-                <ExternalLink size={10} />
-              </button>
+            <div className="flex items-center gap-2">
+              <Flame size={20} className="text-primary" />
+              <h2 className="text-xl sm:text-2xl font-bold text-ink tracking-tight">
+                What to study next
+              </h2>
             </div>
-
-            <p className="text-xs text-slate-300 font-sans mb-3">
-              Normalized board photo from 2024-11-04. Perspective rectified to 300 DPI, glare removed, segmented into 3 text regions and 1 KaTeX equation block.
+            <p className="text-sm text-ink-soft mt-0.5">
+              High-yield topics based on past exams and your coverage gaps.
             </p>
-
-            {/* Simulated Cleaned Board Preview */}
-            <div className="p-3 bg-[#040608] border border-[#1F2937] font-mono text-xs space-y-2">
-              <div className="text-slate-400 text-[11px]">
-                <span className="text-[#FF3B30] font-bold">TOPIC:</span> Normalization & 3NF/BCNF (Unit 2)
-              </div>
-              <div className="p-2 bg-[#090D13] border-l-2 border-[#FF3B30] text-emerald-400 text-xs font-mono">
-                $$ X \rightarrow Y \iff \forall t_1, t_2 \in r(R), [t_1[X] = t_2[X] \implies t_1[Y] = t_2[Y]] $$
-              </div>
-              <div className="text-[10px] text-amber-400 flex items-center gap-1">
-                <AlertTriangle size={11} />
-                <span>2 low-confidence OCR words detected (decompostion, dependancies)</span>
-              </div>
-            </div>
           </div>
 
-          <div className="mt-4 pt-3 border-t border-[#1F2937] flex items-center justify-between text-xs font-mono">
-            <span className="text-slate-500">WORD CONFIDENCE: 88.4%</span>
-            <button
-              onClick={() => onSelectTab('notes')}
-              className="text-[#FF3B30] hover:underline flex items-center gap-1 font-bold"
-            >
-              <span>REVIEW OCR CORRECTIONS</span>
-              <ArrowRight size={12} />
-            </button>
-          </div>
-        </div>
-
-        {/* Panel 2: Study Priority Leaderboard (6 cols) */}
-        <div className="md:col-span-6 bg-[#0D1117] border border-[#1F2937] p-5 flex flex-col justify-between tactical-panel">
-          <div>
-            <div className="flex items-center justify-between mb-3 border-b border-[#1F2937] pb-2">
-              <div className="flex items-center gap-2">
-                <BarChart3 size={15} className="text-[#FF3B30]" />
-                <h3 className="font-mono text-xs font-bold text-white tracking-wider uppercase">
-                  HIGH-YIELD STUDY PRIORITY (MARKS / EFFORT)
-                </h3>
-              </div>
-              <button 
-                onClick={() => onSelectTab('insights')}
-                className="text-[11px] font-mono text-[#FF3B30] hover:underline flex items-center gap-1"
-              >
-                <span>VIEW INSIGHTS</span>
-                <ExternalLink size={10} />
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              {topics.slice(0, 4).map((t, i) => (
-                <div key={t.id} className="space-y-1">
-                  <div className="flex justify-between text-xs font-mono">
-                    <span className="text-white font-medium">
-                      #{i + 1} {t.name}
-                    </span>
-                    <span className="font-bold text-[#FF3B30]">
-                      {t.priority_score?.toFixed(2) || '0.00'} M/HR
-                    </span>
-                  </div>
-                  {/* Progress bar */}
-                  <div className="w-full h-1.5 bg-[#1F2937] overflow-hidden">
-                    <div 
-                      className="h-full transition-all duration-500"
-                      style={{ 
-                        width: `${((t.priority_score || 0) / 10) * 100}%`,
-                        backgroundColor: t.color 
-                      }}
-                    />
-                  </div>
-                  <div className="flex justify-between text-[10px] font-mono text-slate-500">
-                    <span>{t.total_marks_historical || 0} total marks historical</span>
-                    <span>{t.effort_hours || 0}h estimated effort</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-4 pt-3 border-t border-[#1F2937] flex items-center justify-between text-xs font-mono">
-            <span className="text-slate-500">FORMULA: TOTAL_MARKS / EFFORT_HOURS</span>
-            <button
-              onClick={() => onSelectTab('planner')}
-              className="text-[#FF3B30] hover:underline flex items-center gap-1 font-bold"
-            >
-              <span>INJECT INTO PLANNER</span>
-              <ArrowRight size={12} />
-            </button>
-          </div>
-        </div>
-
-        {/* Panel 3: Critical Coverage Gap Alert (12 cols) */}
-        <div className="md:col-span-12 bg-amber-950/20 border border-amber-500/40 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0">
-              <AlertTriangle size={20} className="text-amber-400" />
-            </div>
-            <div>
-              <div className="font-mono text-xs font-bold text-amber-300 uppercase tracking-wider">
-                SYLLABUS COVERAGE GAP DETECTED: UNIT 4 INDEXING & B+ TREES
-              </div>
-              <div className="text-xs text-slate-300 font-sans mt-0.5">
-                Asked in past papers 4 times (28 historical marks), but <strong className="text-white">NO lecture notes exist</strong> in the database.
-              </div>
-            </div>
-          </div>
           <button
-            onClick={() => onSelectTab('insights')}
-            className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-black text-xs font-mono font-bold tracking-wider shrink-0 transition-all shadow-md"
+            onClick={() => onSelectTab('planner')}
+            className="hidden sm:flex items-center gap-1.5 text-sm font-semibold text-primary-text hover:text-primary transition-colors"
           >
-            RESOLVE GAP IN PLANNER
+            <span>View full study plan</span>
+            <ArrowRight size={15} />
           </button>
         </div>
 
-      </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+          {studyNext.length > 0 ? (
+            studyNext.map((topic, idx) => (
+              <div
+                key={topic.id || idx}
+                className="bg-bg-cream rounded-card p-6 border border-border/80 flex flex-col justify-between hover:shadow-warm transition-all group"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-2xl font-extrabold text-primary">
+                      #{idx + 1}
+                    </span>
+                    <span className="text-xs px-2.5 py-1 bg-peach/70 text-primary-text font-bold rounded-pill">
+                      {topic.priority_score ? `${topic.priority_score.toFixed(1)} score` : 'High priority'}
+                    </span>
+                  </div>
+
+                  <h3 className="text-lg font-bold text-ink leading-snug group-hover:text-primary transition-colors">
+                    {topic.name}
+                  </h3>
+
+                  <p className="text-xs text-ink-soft mt-1.5">
+                    {topic.total_marks_historical ? `${topic.total_marks_historical} marks in past exams` : 'Frequently tested'} 
+                    {topic.effort_hours ? ` • ~${topic.effort_hours}h to master` : ''}
+                  </p>
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-border/60 flex items-center justify-between">
+                  <span className="text-xs font-medium text-ink-soft">
+                    {topic.notes_count ? `${topic.notes_count} note pages` : 'Ready to study'}
+                  </span>
+                  <button
+                    onClick={() => onSelectTab('cards')}
+                    className="px-4 py-1.5 bg-primary hover:bg-primary-hover text-on-primary font-bold text-xs rounded-pill transition-transform active:scale-95"
+                  >
+                    Start
+                  </button>
+                </div>
+              </div>
+            ))
+          ) : (
+            // Calm placeholder while loading or empty
+            [1, 2, 3].map((num) => (
+              <div key={num} className="bg-bg-cream rounded-card p-6 border border-border/80 animate-pulse space-y-3">
+                <div className="w-8 h-8 bg-peach rounded-full" />
+                <div className="h-5 bg-border rounded w-3/4" />
+                <div className="h-4 bg-border/60 rounded w-1/2" />
+              </div>
+            ))
+          )}
+        </div>
+      </section>
+
+      {/* ── THREE LARGE STUDY TILES (ORIGINAL ILLUSTRATIONS) ────────────────── */}
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-xl sm:text-2xl font-bold text-ink tracking-tight">
+            Study tools
+          </h2>
+          <p className="text-sm text-ink-soft mt-0.5">
+            Everything extracted from your boards and papers in one place.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          
+          {/* Tile 1: Notes */}
+          <div 
+            onClick={() => onSelectTab('notes')}
+            className="group cursor-pointer bg-bg rounded-card-lg p-6 sm:p-8 border border-border shadow-xs hover:shadow-warm transition-all flex flex-col justify-between"
+          >
+            <div>
+              {/* Original Illustration: Notebook & Knowledge Spark */}
+              <div className="w-16 h-16 rounded-2xl bg-peach/70 flex items-center justify-center mb-6 group-hover:scale-105 transition-transform">
+                <svg width="34" height="34" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="6" y="4" width="24" height="28" rx="4" fill="#FFFFFF" stroke="#FF8233" strokeWidth="2" />
+                  <line x1="11" y1="11" x2="21" y2="11" stroke="#282828" strokeWidth="2" strokeLinecap="round" />
+                  <line x1="11" y1="17" x2="25" y2="17" stroke="#6F6860" strokeWidth="2" strokeLinecap="round" />
+                  <line x1="11" y1="23" x2="19" y2="23" stroke="#6F6860" strokeWidth="2" strokeLinecap="round" />
+                  <circle cx="27" cy="8" r="3" fill="#FF8233" />
+                </svg>
+              </div>
+
+              <h3 className="text-xl font-bold text-ink group-hover:text-primary transition-colors">
+                Lecture Notes
+              </h3>
+              <p className="text-sm text-ink-soft mt-2 leading-relaxed">
+                Clean handwritten notes, straightened board photos, and readable equations.
+              </p>
+            </div>
+
+            <div className="mt-8 flex items-center gap-1.5 text-sm font-semibold text-primary-text">
+              <span>Read notes</span>
+              <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+            </div>
+          </div>
+
+          {/* Tile 2: Flashcards */}
+          <div 
+            onClick={() => onSelectTab('cards')}
+            className="group cursor-pointer bg-bg rounded-card-lg p-6 sm:p-8 border border-border shadow-xs hover:shadow-warm transition-all flex flex-col justify-between"
+          >
+            <div>
+              {/* Original Illustration: Layered Flashcards */}
+              <div className="w-16 h-16 rounded-2xl bg-accent-tint/60 flex items-center justify-center mb-6 group-hover:scale-105 transition-transform">
+                <svg width="34" height="34" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="10" y="8" width="20" height="24" rx="4" fill="#B54DFF" fillOpacity="0.2" transform="rotate(8 10 8)" stroke="#B54DFF" strokeWidth="1.5" />
+                  <rect x="6" y="6" width="22" height="24" rx="4" fill="#FFFFFF" stroke="#B54DFF" strokeWidth="2" />
+                  <circle cx="17" cy="18" r="4" fill="#B54DFF" fillOpacity="0.2" />
+                  <path d="M15 18L16.5 19.5L19.5 16.5" stroke="#B54DFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+
+              <h3 className="text-xl font-bold text-ink group-hover:text-primary transition-colors">
+                Flashcards
+              </h3>
+              <p className="text-sm text-ink-soft mt-2 leading-relaxed">
+                Active recall flip cards created from key definitions and board concepts.
+              </p>
+            </div>
+
+            <div className="mt-8 flex items-center gap-1.5 text-sm font-semibold text-primary-text">
+              <span>Study cards</span>
+              <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+            </div>
+          </div>
+
+          {/* Tile 3: Practice Questions */}
+          <div 
+            onClick={() => onSelectTab('mock')}
+            className="group cursor-pointer bg-bg rounded-card-lg p-6 sm:p-8 border border-border shadow-xs hover:shadow-warm transition-all flex flex-col justify-between"
+          >
+            <div>
+              {/* Original Illustration: Target Spark & Question */}
+              <div className="w-16 h-16 rounded-2xl bg-peach/70 flex items-center justify-center mb-6 group-hover:scale-105 transition-transform">
+                <svg width="34" height="34" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="18" cy="18" r="14" fill="#FFFFFF" stroke="#FF8233" strokeWidth="2" />
+                  <circle cx="18" cy="18" r="7" stroke="#FF8233" strokeWidth="1.5" strokeDasharray="2 2" />
+                  <path d="M16 13C16 11.5 17 11 18 11C19 11 20 11.5 20 12.5C20 13.5 18 14.5 18 16" stroke="#282828" strokeWidth="2" strokeLinecap="round" />
+                  <circle cx="18" cy="20.5" r="1.25" fill="#282828" />
+                </svg>
+              </div>
+
+              <h3 className="text-xl font-bold text-ink group-hover:text-primary transition-colors">
+                Practice Questions
+              </h3>
+              <p className="text-sm text-ink-soft mt-2 leading-relaxed">
+                Exam questions from past question papers organized by topic and mark weight.
+              </p>
+            </div>
+
+            <div className="mt-8 flex items-center gap-1.5 text-sm font-semibold text-primary-text">
+              <span>Practice questions</span>
+              <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+            </div>
+          </div>
+
+        </div>
+      </section>
 
     </div>
   );
