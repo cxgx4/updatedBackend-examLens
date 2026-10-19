@@ -1,12 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  FileText, Copy, Check, CheckCircle2, AlertTriangle, 
-  Layers, Code, Eye, RefreshCw, Sparkles, ChevronRight, CornerDownRight 
+  FileText, 
+  Copy, 
+  Check, 
+  CheckCircle2, 
+  Sparkles, 
+  Layers, 
+  Clock, 
+  Calendar, 
+  ChevronRight,
+  Info,
+  CheckCheck
 } from 'lucide-react';
 import { KatexMath } from '../components/KatexMath';
 import { api } from '../services/api';
 import { Note, OCRWord } from '../types';
-import { MOCK_NOTES } from '../mocks';
 
 export const NotesPage: React.FC = () => {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -18,40 +26,43 @@ export const NotesPage: React.FC = () => {
   const [latexMode, setLatexMode] = useState<'rendered' | 'raw'>('rendered');
   const [feedbackToast, setFeedbackToast] = useState<string | null>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const fetchNotes = async () => {
-      const n = await api.getNotes();
-      setNotes(n);
-      if (n.length > 0) {
-        setSelectedNoteId(n[0].id);
+      try {
+        const n = await api.getNotes();
+        setNotes(n || []);
+        if (n && n.length > 0) {
+          setSelectedNoteId(n[0].id);
+        }
+      } catch (e) {
+        console.warn('Error fetching notes:', e);
       }
     };
     fetchNotes();
   }, []);
 
-  const activeNote = notes.find(n => n.id === selectedNoteId) || notes[0];
+  const activeNote = notes.find((n) => n.id === selectedNoteId) || notes[0];
 
   if (!notes.length || !activeNote) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
-        <div className="w-16 h-16 bg-[#161B22] border border-[#1F2937] flex items-center justify-center rounded-full">
-          <FileText size={24} className="text-slate-500" />
+        <div className="w-16 h-16 bg-peach text-primary flex items-center justify-center rounded-full shadow-xs">
+          <FileText size={26} />
         </div>
-        <h2 className="text-xl font-display text-white tracking-wider">NO LECTURE NOTES DETECTED</h2>
-        <p className="text-slate-400 font-mono text-xs max-w-md">
-          Upload a "Lecture Board" document to run the OCR and Vision pipeline. Question papers do not generate structured lecture notes.
+        <h2 className="text-2xl font-bold text-ink">No lecture notes yet</h2>
+        <p className="text-ink-soft text-sm max-w-md">
+          Upload board snapshots or lecture photos using the "Upload notes" button to generate clean transcripts and math equations.
         </p>
       </div>
     );
   }
 
   const handleSelectRegion = (regionId: string) => {
-    setActiveRegionId(prev => prev === regionId ? null : regionId);
+    setActiveRegionId((prev) => (prev === regionId ? null : regionId));
   };
 
   const handleOpenWordCorrection = (word: OCRWord) => {
     setEditingWordId(word.word_id);
-    // suggest common typo fix
     if (word.text === 'decompostion') setCorrectionInput('decomposition');
     else if (word.text === 'dependancies') setCorrectionInput('dependencies');
     else if (word.text === 'seralizability') setCorrectionInput('serializability');
@@ -60,27 +71,35 @@ export const NotesPage: React.FC = () => {
 
   const handleSaveWordCorrection = async (wordId: string) => {
     if (!activeNote) return;
-    const updated = await api.updateWordCorrection(activeNote.id, wordId, correctionInput);
-    setNotes(prev => prev.map(n => n.id === updated.id ? updated : n));
-    setEditingWordId(null);
-    showToast(`Corrected word to "${correctionInput}"`);
+    try {
+      const updated = await api.updateWordCorrection(activeNote.id, wordId, correctionInput);
+      setNotes((prev) => prev.map((n) => (n.id === updated.id ? updated : n)));
+      setEditingWordId(null);
+      showToast(`Updated word to "${correctionInput}"`);
+    } catch (e) {
+      console.warn(e);
+    }
   };
 
   const handleAcceptAllFixes = async () => {
     if (!activeNote) return;
     const suggestedWords = activeNote.words
-      .filter(w => w.low_confidence)
-      .map(w => {
+      .filter((w) => w.low_confidence)
+      .map((w) => {
         let txt = w.text;
         if (txt === 'decompostion') txt = 'decomposition';
         if (txt === 'dependancies') txt = 'dependencies';
         if (txt === 'seralizability') txt = 'serializability';
         return { wordId: w.word_id, text: txt };
       });
-      
-    const updated = await api.acceptAllCorrections(activeNote.id, suggestedWords);
-    setNotes(prev => prev.map(n => n.id === updated.id ? updated : n));
-    showToast('Accepted all OCR fixes! High confidence achieved.');
+
+    try {
+      const updated = await api.acceptAllCorrections(activeNote.id, suggestedWords);
+      setNotes((prev) => prev.map((n) => (n.id === updated.id ? updated : n)));
+      showToast('All suggested spelling fixes applied!');
+    } catch (e) {
+      console.warn(e);
+    }
   };
 
   const handleCopyLatex = () => {
@@ -88,7 +107,7 @@ export const NotesPage: React.FC = () => {
       navigator.clipboard.writeText(activeNote.latex);
       setIsCopiedLatex(true);
       setTimeout(() => setIsCopiedLatex(false), 2000);
-      showToast('LaTeX copied to clipboard');
+      showToast('LaTeX formula copied to clipboard');
     }
   };
 
@@ -97,226 +116,155 @@ export const NotesPage: React.FC = () => {
     setTimeout(() => setFeedbackToast(null), 3000);
   };
 
+  const lowConfidenceCount = activeNote.words.filter((w) => w.low_confidence).length;
+
   return (
-    <div className="space-y-6 pb-16">
+    <div className="space-y-8 pb-12">
       
-      {/* ── HEADER & BREADCRUMBS ────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#1F2937] pb-4">
+      {/* ── PAGE HEADER ────────────────────────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/80 pb-6">
         <div>
-          <div className="flex items-center gap-2 text-[11px] font-mono text-slate-400 mb-1">
-            <span>EXAMLENS</span>
-            <span>/</span>
-            <span className="text-[#FF3B30]">NOTE ENGINE</span>
-            <span>/</span>
-            <span>MEMBER 2 (OCR & MATH)</span>
-          </div>
-          <h1 className="font-display text-3xl sm:text-4xl text-white tracking-wide uppercase">
-            STRUCTURED LECTURE NOTES & OCR CONFIDENCE
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-ink">
+            Lecture Notes
           </h1>
+          <p className="text-sm text-ink-soft mt-1">
+            Clean handwritten notes, KaTeX math equations, and word-by-word accuracy.
+          </p>
         </div>
 
-        {/* Action Controls */}
-        <div className="flex items-center gap-3">
+        {lowConfidenceCount > 0 && (
           <button
             onClick={handleAcceptAllFixes}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-600/60 text-emerald-300 font-mono text-xs font-semibold tracking-wider transition-all shadow-sm"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-on-primary font-bold text-xs rounded-pill shadow-warm transition-transform active:scale-95 self-start sm:self-auto"
           >
-            <CheckCircle2 size={13} className="text-emerald-400" />
-            <span>ACCEPT ALL FIXES</span>
+            <CheckCheck size={16} />
+            <span>Accept all {lowConfidenceCount} spelling fixes</span>
           </button>
-        </div>
+        )}
       </div>
 
-      {/* ── MAIN CONTENT LAYOUT: TIMELINE + SPLIT VIEW ────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      {/* ── MAIN CONTENT: TIMELINE + DETAILS ──────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
         
-        {/* Left Column: Vertical Lecture Timeline (3 cols) */}
-        <div className="lg:col-span-3 space-y-4">
-          <div className="bg-[#0D1117] border border-[#1F2937] p-4">
-            <span className="text-xs font-mono font-bold text-white tracking-wider uppercase block mb-3 border-b border-[#1F2937] pb-2">
-              LECTURE TIMELINE
-            </span>
+        {/* Left Column: Lecture List (3 cols) */}
+        <div className="lg:col-span-4 space-y-3">
+          <div className="text-xs font-bold text-ink-soft uppercase tracking-wider mb-2">
+            Lecture Pages ({notes.length})
+          </div>
 
-            <div className="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-[#1F2937]">
-              {notes.map((note) => {
-                const isSelected = note.id === selectedNoteId;
-                return (
-                  <div
-                    key={note.id}
-                    onClick={() => {
-                      setSelectedNoteId(note.id);
-                      setActiveRegionId(null);
-                    }}
-                    className={`relative cursor-pointer group transition-all`}
-                  >
-                    {/* Glowing Red Timeline Node */}
-                    <div 
-                      className={`absolute -left-[27px] top-1 w-3 h-3 rounded-full border-2 transition-all ${
-                        isSelected 
-                          ? 'border-[#FF3B30] bg-[#FF3B30] shadow-laser scale-125' 
-                          : 'border-slate-600 bg-[#07090D] group-hover:border-slate-400'
+          <div className="space-y-2.5">
+            {notes.map((note) => {
+              const isSelected = note.id === selectedNoteId;
+              return (
+                <div
+                  key={note.id}
+                  onClick={() => {
+                    setSelectedNoteId(note.id);
+                    setActiveRegionId(null);
+                  }}
+                  className={`p-4 rounded-card border-2 cursor-pointer transition-all ${
+                    isSelected
+                      ? 'border-primary bg-peach/40 shadow-xs'
+                      : 'border-border bg-grey-card/50 hover:bg-grey-card'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-sm text-ink">
+                      Lecture {note.lecture_number}
+                    </span>
+                    <span className="text-xs text-ink-soft flex items-center gap-1">
+                      <Calendar size={12} className="text-ink-faint" />
+                      {note.lecture_date}
+                    </span>
+                  </div>
+
+                  <div className="text-xs text-ink-soft mt-1 font-medium truncate">
+                    {note.subject}
+                  </div>
+
+                  <div className="mt-3 pt-2.5 border-t border-border/60 flex items-center justify-between text-xs">
+                    <span className="text-ink-faint">Page {note.page}</span>
+                    <span
+                      className={`font-semibold px-2 py-0.5 rounded-pill text-[11px] ${
+                        note.confidence > 0.9
+                          ? 'bg-status-success-bg text-status-success'
+                          : 'bg-peach text-primary-text'
                       }`}
-                    />
-
-                    <div className={`p-2.5 border transition-all ${
-                      isSelected 
-                        ? 'border-[#FF3B30] bg-[#FF3B30]/10 shadow-laser' 
-                        : 'border-[#1F2937] bg-[#090D13] hover:border-slate-700'
-                    }`}>
-                      <div className="flex items-baseline justify-between mb-1">
-                        <span className="font-display text-xl text-white tracking-wide">
-                          LEC {note.lecture_number}
-                        </span>
-                        <span className="text-[10px] font-mono text-slate-500">
-                          {note.lecture_date}
-                        </span>
-                      </div>
-                      <div className="text-xs font-sans text-slate-300 truncate">
-                        {note.subject}
-                      </div>
-                      <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 mt-2">
-                        <span>PAGE {note.page}</span>
-                        <span className={note.confidence > 0.9 ? 'text-emerald-400' : 'text-amber-400'}>
-                          {(note.confidence * 100).toFixed(1)}% CONF
-                        </span>
-                      </div>
-                    </div>
+                    >
+                      {Math.round(note.confidence * 100)}% accuracy
+                    </span>
                   </div>
-                );
-              })}
-            </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        {/* Center Column: Cleaned Board Canvas with Region Overlays (4 cols) */}
-        <div className="lg:col-span-4 space-y-4">
-          <div className="bg-[#0D1117] border border-[#1F2937] p-4 flex flex-col h-full tactical-panel">
-            <div className="flex items-center justify-between mb-3 border-b border-[#1F2937] pb-2">
-              <span className="text-xs font-mono font-bold text-white tracking-wider uppercase flex items-center gap-1.5">
-                <Layers size={13} className="text-[#06B6D4]" />
-                RECTIFIED BOARD IMAGE
-              </span>
-              <span className="text-[10px] font-mono text-slate-500">
-                CLICK REGION TO JUMP
-              </span>
-            </div>
-
-            {/* Simulated Interactive Page Image Canvas */}
-            <div className="relative flex-1 min-h-[380px] bg-[#05080C] border border-[#1F2937] p-4 overflow-hidden group select-none">
-              
-              {/* Background texture simulation */}
-              <div className="absolute inset-0 bg-grid-dots opacity-40 pointer-events-none" />
-
-              {/* Render Bounding Box Regions */}
-              {activeNote.regions.map((reg) => {
-                const isActive = activeRegionId === reg.id;
-                const isEq = reg.type === 'equation';
-                const isDiag = reg.type === 'diagram';
-                
-                return (
-                  <div
-                    key={reg.id}
-                    onClick={() => handleSelectRegion(reg.id)}
-                    className={`absolute cursor-pointer border-2 transition-all p-1.5 flex flex-col justify-between ${
-                      isActive 
-                        ? 'border-[#FF3B30] bg-[#FF3B30]/25 shadow-laser z-20' 
-                        : isEq
-                        ? 'border-violet-500/60 bg-violet-500/10 hover:border-violet-400'
-                        : isDiag
-                        ? 'border-lime-500/60 bg-lime-500/10 hover:border-lime-400'
-                        : 'border-cyan-500/60 bg-cyan-500/10 hover:border-cyan-400'
-                    }`}
-                    style={{
-                      left: `${reg.x}%`,
-                      top: `${reg.y}%`,
-                      width: `${reg.width}%`,
-                      height: `${reg.height}%`,
-                    }}
-                  >
-                    <div className="flex items-center justify-between text-[9px] font-mono uppercase font-bold">
-                      <span className={`px-1 py-0.5 ${
-                        isActive ? 'bg-[#FF3B30] text-white' : 'bg-black/80 text-slate-300'
-                      }`}>
-                        {reg.type}
-                      </span>
-                      <span className="text-[8px] font-mono text-slate-400">
-                        {reg.confidence ? `${(reg.confidence * 100).toFixed(0)}%` : ''}
-                      </span>
-                    </div>
-
-                    <div className="text-[10px] font-mono text-slate-200 truncate mt-1">
-                      {reg.label}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="mt-3 flex items-center justify-between text-[11px] font-mono text-slate-500">
-              <span>{activeNote.regions.length} SEGMENTED REGIONS DETECTED</span>
-              <span>300 DPI MATRIX RECTIFIED</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column: OCR Text & KaTeX Math with Inline Corrections (5 cols) */}
-        <div className="lg:col-span-5 space-y-4">
-          <div className="bg-[#0D1117] border border-[#1F2937] p-5 flex flex-col h-full tactical-panel">
+        {/* Right Column: Active Note Reading View (8 cols) */}
+        <div className="lg:col-span-8 space-y-6">
+          
+          {/* Note Card Container */}
+          <div className="bg-bg rounded-card-lg border border-border p-6 sm:p-8 shadow-xs space-y-6">
             
-            {/* Header with LaTeX toggle & Copy */}
-            <div className="flex items-center justify-between mb-3 border-b border-[#1F2937] pb-2">
-              <span className="text-xs font-mono font-bold text-white tracking-wider uppercase flex items-center gap-1.5">
-                <FileText size={13} className="text-[#FF3B30]" />
-                STRUCTURED NOTE & WORD OCR
-              </span>
+            {/* Note Meta & Accuracy Legend */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-border/80">
+              <div>
+                <span className="text-xs font-bold text-primary-text uppercase tracking-wider">
+                  Unit 2 • {activeNote.subject}
+                </span>
+                <h2 className="text-xl font-bold text-ink mt-0.5">
+                  Lecture {activeNote.lecture_number} Notes
+                </h2>
+              </div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setLatexMode(latexMode === 'rendered' ? 'raw' : 'rendered')}
-                  className="px-2 py-0.5 text-[10px] font-mono border border-[#1F2937] text-slate-400 hover:text-white"
-                >
-                  {latexMode === 'rendered' ? 'RAW LATEX' : 'RENDERED'}
-                </button>
-                <button
-                  onClick={handleCopyLatex}
-                  className="px-2 py-0.5 text-[10px] font-mono border border-[#1F2937] text-slate-400 hover:text-white flex items-center gap-1"
-                >
-                  {isCopiedLatex ? <Check size={11} className="text-emerald-400" /> : <Copy size={11} />}
-                  <span>{isCopiedLatex ? 'COPIED' : 'COPY'}</span>
-                </button>
+              {/* Accuracy Legend */}
+              <div className="flex items-center gap-3 text-xs text-ink-soft">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-peach border border-primary/40" />
+                  <span>Low confidence word</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-status-success-bg border border-status-success/40" />
+                  <span>Corrected</span>
+                </span>
               </div>
             </div>
 
-            {/* Word-by-Word OCR Rendering Strip */}
-            <div className="mb-4 p-3 bg-[#07090D] border border-[#1F2937]">
-              <div className="text-[10px] font-mono text-slate-500 uppercase tracking-wider mb-2 flex items-center justify-between">
-                <span>WORD-LEVEL CONFIDENCE VERIFICATION</span>
-                <span className="text-amber-400 font-semibold">AMBER = LOW CONFIDENCE (&lt;60%)</span>
+            {/* Word-by-word OCR transcript with interactive corrections */}
+            <div className="p-5 bg-grey-card rounded-2xl border border-border/70 space-y-3">
+              <div className="text-xs font-bold text-ink-soft flex items-center gap-1.5">
+                <Info size={14} className="text-primary" />
+                <span>Transcript (click any highlighted word to correct it):</span>
               </div>
 
-              <div className="flex flex-wrap gap-1.5 text-xs font-mono">
+              <div className="flex flex-wrap gap-1.5 text-sm leading-relaxed">
                 {activeNote.words.map((word) => {
                   const isLow = word.low_confidence;
                   const isCorrected = word.corrected;
-                  
+
                   return (
                     <span
                       key={word.word_id}
                       onClick={() => isLow && handleOpenWordCorrection(word)}
-                      className={`relative px-1 py-0.5 transition-all cursor-pointer rounded-none ${
+                      className={`relative px-2 py-0.5 rounded-lg transition-all ${
                         isCorrected
-                          ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-800'
+                          ? 'bg-status-success-bg text-status-success font-medium border border-status-success/40'
                           : isLow
-                          ? 'bg-amber-950/40 text-amber-300 border-b-2 border-amber-500 hover:bg-amber-900/60'
-                          : 'text-slate-200 hover:bg-slate-800'
+                          ? 'bg-peach text-primary-text font-bold cursor-pointer hover:bg-peach/80 border border-primary/30'
+                          : 'text-ink hover:bg-bg/80'
                       }`}
-                      title={`Word: ${word.text} | Confidence: ${(word.confidence * 100).toFixed(0)}%`}
+                      title={
+                        isLow
+                          ? `Accuracy: ${Math.round(word.confidence * 100)}% - Click to correct`
+                          : undefined
+                      }
                     >
-                      {/* Diff representation if corrected */}
                       {isCorrected && word.original_text ? (
                         <>
-                          <span className="line-through text-red-400 opacity-60 mr-1">{word.original_text}</span>
-                          <span className="text-emerald-400 font-bold">{word.text}</span>
+                          <span className="line-through text-status-danger opacity-70 mr-1">
+                            {word.original_text}
+                          </span>
+                          <span>{word.text}</span>
                         </>
                       ) : (
                         word.text
@@ -328,65 +276,142 @@ export const NotesPage: React.FC = () => {
 
               {/* Inline Word Correction Popover */}
               {editingWordId && (
-                <div className="mt-3 p-2.5 bg-[#161B22] border border-[#FF3B30] flex items-center gap-2">
-                  <span className="text-[11px] font-mono text-[#FF3B30]">CORRECT:</span>
+                <div className="mt-3 p-3 bg-bg rounded-xl border border-primary shadow-warm flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                  <span className="text-xs font-bold text-primary shrink-0">
+                    Correct word:
+                  </span>
                   <input
                     type="text"
                     value={correctionInput}
                     onChange={(e) => setCorrectionInput(e.target.value)}
-                    className="flex-1 px-2 py-1 bg-[#090D13] border border-[#1F2937] text-xs font-mono text-white focus:outline-none focus:border-[#FF3B30]"
+                    className="flex-1 px-3 py-1.5 bg-grey-card border border-border rounded-lg text-xs font-medium text-ink focus:outline-none focus:ring-2 focus:ring-primary-text"
                     autoFocus
                   />
-                  <button
-                    onClick={() => handleSaveWordCorrection(editingWordId)}
-                    className="px-3 py-1 bg-[#FF3B30] text-black font-mono text-xs font-bold shadow-sm"
-                  >
-                    SAVE
-                  </button>
-                  <button
-                    onClick={() => setEditingWordId(null)}
-                    className="px-2 py-1 text-slate-400 hover:text-white font-mono text-xs"
-                  >
-                    CANCEL
-                  </button>
+                  <div className="flex items-center gap-2 self-end sm:self-auto">
+                    <button
+                      onClick={() => handleSaveWordCorrection(editingWordId)}
+                      className="px-4 py-1.5 bg-primary text-on-primary font-bold text-xs rounded-pill shadow-xs hover:bg-primary-hover"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={() => setEditingWordId(null)}
+                      className="px-3 py-1.5 text-xs text-ink-soft hover:text-ink font-medium"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* KaTeX Math Equation Section */}
+            {/* KaTeX Math Equation Section on Cream Background */}
             {activeNote.latex && (
-              <div className="mb-4 p-4 bg-[#05080C] border-l-2 border-[#FF3B30] border-y border-r border-[#1F2937]">
-                <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 uppercase mb-2">
-                  <span>PIX2TEX MATH OCR EXTRACTION</span>
-                  <span className="text-emerald-400 font-bold">SYNTAX VALIDATED</span>
+              <div className="p-6 bg-bg-cream rounded-2xl border border-border/80 space-y-3">
+                <div className="flex items-center justify-between text-xs text-ink-soft font-semibold">
+                  <span className="flex items-center gap-1.5 text-ink font-bold">
+                    <Sparkles size={14} className="text-primary" />
+                    <span>Mathematical Formula (KaTeX)</span>
+                  </span>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() =>
+                        setLatexMode(latexMode === 'rendered' ? 'raw' : 'rendered')
+                      }
+                      className="px-3 py-1 bg-bg border border-border rounded-pill text-xs font-medium text-ink-soft hover:text-ink"
+                    >
+                      {latexMode === 'rendered' ? 'Show LaTeX code' : 'Show preview'}
+                    </button>
+
+                    <button
+                      onClick={handleCopyLatex}
+                      className="px-3 py-1 bg-bg border border-border rounded-pill text-xs font-medium text-ink-soft hover:text-primary flex items-center gap-1"
+                    >
+                      {isCopiedLatex ? (
+                        <>
+                          <Check size={12} className="text-status-success" />
+                          <span className="text-status-success font-bold">Copied</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={12} />
+                          <span>Copy</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 {latexMode === 'rendered' ? (
-                  <div className="text-center font-mono text-white text-base py-2">
+                  <div className="py-3 text-center overflow-x-auto text-ink">
                     <KatexMath math={activeNote.latex} block={true} />
                   </div>
                 ) : (
-                  <pre className="font-mono text-xs text-amber-300 p-2 bg-black/50 overflow-x-auto">
+                  <pre className="font-mono text-xs text-ink-soft p-3 bg-bg border border-border rounded-xl overflow-x-auto">
                     {activeNote.latex}
                   </pre>
                 )}
               </div>
             )}
 
-            {/* Note Body Text */}
-            <div className="flex-1 bg-[#05080C] border border-[#1F2937] p-4 font-mono text-xs text-slate-300 leading-relaxed whitespace-pre-wrap overflow-y-auto">
-              {activeNote.text}
+            {/* Note Full Explanation Text */}
+            <div className="space-y-2">
+              <h3 className="text-sm font-bold text-ink">Summary & Concept Key</h3>
+              <p className="text-sm text-ink-soft leading-relaxed whitespace-pre-wrap">
+                {activeNote.text}
+              </p>
+            </div>
+
+            {/* Segmented Board Regions Preview */}
+            <div className="space-y-3 pt-4 border-t border-border/70">
+              <div className="flex items-center justify-between text-xs font-semibold text-ink-soft">
+                <span className="flex items-center gap-1.5">
+                  <Layers size={14} className="text-primary" />
+                  <span>Detected Board Regions ({activeNote.regions.length})</span>
+                </span>
+                <span className="text-[11px] text-ink-faint">300 DPI perspective rectified</span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                {activeNote.regions.map((reg) => (
+                  <div
+                    key={reg.id}
+                    onClick={() => handleSelectRegion(reg.id)}
+                    className={`p-3 rounded-xl border text-xs cursor-pointer transition-all ${
+                      activeRegionId === reg.id
+                        ? 'border-primary bg-peach/40 font-bold text-primary-text'
+                        : 'border-border bg-grey-card/60 text-ink-soft hover:bg-grey-card'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="uppercase text-[10px] font-bold tracking-wider">
+                        {reg.type}
+                      </span>
+                      {reg.confidence && (
+                        <span className="text-[10px] text-ink-faint">
+                          {Math.round(reg.confidence * 100)}%
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-1 truncate font-medium text-ink">
+                      {reg.label}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
           </div>
+
         </div>
 
       </div>
 
-      {/* Toast */}
+      {/* Toast Feedback */}
       {feedbackToast && (
-        <div className="fixed bottom-6 left-6 z-50 px-4 py-2 bg-emerald-950 border border-emerald-500 text-emerald-300 font-mono text-xs shadow-2xl flex items-center gap-2 animate-bounce">
-          <CheckCircle2 size={14} className="text-emerald-400" />
+        <div className="fixed bottom-6 left-6 z-50 px-4 py-2.5 bg-ink text-white rounded-pill text-xs font-semibold shadow-warm flex items-center gap-2">
+          <CheckCircle2 size={16} className="text-status-success" />
           <span>{feedbackToast}</span>
         </div>
       )}

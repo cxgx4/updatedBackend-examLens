@@ -1,24 +1,42 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Clock, Play, Pause, RotateCcw, Download, Sparkles, 
-  HelpCircle, Eye, EyeOff, CheckCircle2, ChevronRight, BarChart2 
+  Clock, 
+  Play, 
+  Pause, 
+  RotateCcw, 
+  Download, 
+  Eye, 
+  EyeOff, 
+  CheckCircle2, 
+  Filter, 
+  ChevronLeft, 
+  ChevronRight,
+  BookOpen,
+  FileText
 } from 'lucide-react';
 import { Question } from '../types';
-import { MOCK_QUESTIONS } from '../mocks';
+import { api } from '../services/api';
 
 export const MockPage: React.FC = () => {
-  // 90 minutes countdown timer (90 * 60 = 5400 seconds)
+  // 90 minutes countdown timer (5400 seconds)
   const [secondsRemaining, setSecondsRemaining] = useState<number>(90 * 60);
   const [timerRunning, setTimerRunning] = useState<boolean>(false);
   const [revealedAnswers, setRevealedAnswers] = useState<Record<number, boolean>>({});
   const [userAnswers, setUserAnswers] = useState<Record<number, string>>({});
   const [exportToast, setExportToast] = useState<string | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [activeQuestionIndex, setActiveQuestionIndex] = useState<number>(0);
+  const [isFilterOpen, setIsFilterOpen] = useState<boolean>(false);
+  const [selectedSection, setSelectedSection] = useState<string>('all');
 
   useEffect(() => {
     const fetchQuestions = async () => {
-      const q = await import('../services/api').then(m => m.api.getQuestions());
-      setQuestions(q);
+      try {
+        const q = await api.getQuestions();
+        setQuestions(q || []);
+      } catch (e) {
+        console.warn('Error fetching questions:', e);
+      }
     };
     fetchQuestions();
   }, []);
@@ -27,7 +45,7 @@ export const MockPage: React.FC = () => {
     let interval: any = null;
     if (timerRunning && secondsRemaining > 0) {
       interval = setInterval(() => {
-        setSecondsRemaining(prev => Math.max(0, prev - 1));
+        setSecondsRemaining((prev) => Math.max(0, prev - 1));
       }, 1000);
     }
     return () => clearInterval(interval);
@@ -37,11 +55,11 @@ export const MockPage: React.FC = () => {
   const seconds = secondsRemaining % 60;
 
   const toggleAnswerReveal = (qId: number) => {
-    setRevealedAnswers(prev => ({ ...prev, [qId]: !prev[qId] }));
+    setRevealedAnswers((prev) => ({ ...prev, [qId]: !prev[qId] }));
   };
 
   const handleTextChange = (qId: number, text: string) => {
-    setUserAnswers(prev => ({ ...prev, [qId]: text }));
+    setUserAnswers((prev) => ({ ...prev, [qId]: text }));
   };
 
   const getWordCount = (text?: string) => {
@@ -56,225 +74,261 @@ export const MockPage: React.FC = () => {
   };
 
   const handleExportPaper = () => {
-    const text = `# EXAMLENS MOCK EXAM PAPER - DATABASE MANAGEMENT SYSTEMS\nDuration: 90 Minutes | Total Marks: 50\n\n` +
-      questions.slice(0, 5).map((q, i) => `Q${i + 1}. [${q.marks} Marks] (Section ${q.section})\n${q.text}\n\n`).join('\n---\n');
-    
+    const text =
+      `# EXAMLENS PRACTICE QUESTIONS - DATABASE MANAGEMENT SYSTEMS\nDuration: 90 Minutes | Total Marks: 50\n\n` +
+      questions
+        .slice(0, 5)
+        .map(
+          (q, i) =>
+            `Q${i + 1}. [${q.marks} Marks] (Section ${q.section})\n${q.text}\n\n`
+        )
+        .join('\n---\n');
+
     const blob = new Blob([text], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'examlens_mock_paper_90min.md';
+    a.download = 'examlens_practice_paper.md';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    setExportToast('Exported Mock Paper (.md) successfully!');
+    setExportToast('Exported practice paper as Markdown');
     setTimeout(() => setExportToast(null), 3000);
   };
 
-  const mockQuestions = questions.slice(0, 5);
+  // Filter questions
+  const filteredQuestions = questions.filter((q) => {
+    if (selectedSection === 'all') return true;
+    return q.section.toLowerCase() === selectedSection.toLowerCase();
+  });
+
+  const activeQuestion = filteredQuestions[activeQuestionIndex] || filteredQuestions[0];
+
+  if (!questions.length) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
+        <div className="w-16 h-16 bg-peach text-primary flex items-center justify-center rounded-full shadow-xs">
+          <BookOpen size={26} />
+        </div>
+        <h2 className="text-2xl font-bold text-ink">No practice questions yet</h2>
+        <p className="text-ink-soft text-sm max-w-md">
+          Upload past exam papers to extract question items, mark distributions, and sample answer keys.
+        </p>
+      </div>
+    );
+  }
+
+  const words = getWordCount(userAnswers[activeQuestion?.id]);
+  const target = getRecommendedLength(activeQuestion?.marks || 5);
+  const isTargetMet = words >= target.min && words <= target.max;
+  const isRevealed = revealedAnswers[activeQuestion?.id];
 
   return (
-    <div className="space-y-8 pb-16">
+    <div className="space-y-8 pb-12">
       
-      {/* ── HEADER ────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#1F2937] pb-4">
-        <div>
-          <div className="flex items-center gap-2 text-[11px] font-mono text-slate-400 mb-1">
-            <span>EXAMLENS</span>
-            <span>/</span>
-            <span className="text-[#FF3B30]">EXAM ENGINE</span>
-            <span>/</span>
-            <span>TIMED MOCK PRACTICE</span>
+      {/* ── TOP TIMER & EXPORT BAR ────────────────────────────────────────── */}
+      <div className="bg-bg rounded-card border border-border p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        
+        {/* Exam Timer */}
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-peach text-primary flex items-center justify-center">
+            <Clock size={18} />
           </div>
-          <h1 className="font-display text-3xl sm:text-4xl text-white tracking-wide uppercase">
-            SIMULATED PRACTICE PAPER WITH LENGTH HINTS
-          </h1>
+          <div>
+            <span className="text-xs font-semibold text-ink-soft block">
+              90-Minute Practice Timer
+            </span>
+            <div className="font-bold text-xl text-ink">
+              <span>{String(minutes).padStart(2, '0')}</span>:
+              <span className="text-primary">{String(seconds).padStart(2, '0')}</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 ml-2">
+            <button
+              onClick={() => setTimerRunning(!timerRunning)}
+              className="p-2 rounded-pill bg-grey-card hover:bg-border/60 text-ink transition-colors"
+              title={timerRunning ? 'Pause' : 'Start'}
+              aria-label={timerRunning ? 'Pause timer' : 'Start timer'}
+            >
+              {timerRunning ? <Pause size={14} /> : <Play size={14} className="fill-primary text-primary" />}
+            </button>
+            <button
+              onClick={() => {
+                setTimerRunning(false);
+                setSecondsRemaining(90 * 60);
+              }}
+              className="p-2 rounded-pill bg-grey-card hover:bg-border/60 text-ink-soft hover:text-ink transition-colors"
+              title="Reset timer"
+              aria-label="Reset timer"
+            >
+              <RotateCcw size={14} />
+            </button>
+          </div>
         </div>
 
-        {/* Action Controls */}
-        <div className="flex items-center gap-3">
+        {/* Filter Chip & Export Action */}
+        <div className="flex items-center gap-2.5">
+          {/* Collapsible Filter Chip */}
+          <div className="relative">
+            <button
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-grey-card hover:bg-border/60 text-ink font-semibold text-xs rounded-pill border border-border/80 transition-colors"
+            >
+              <Filter size={13} className="text-primary" />
+              <span>Section: {selectedSection === 'all' ? 'All' : selectedSection.toUpperCase()}</span>
+            </button>
+
+            {isFilterOpen && (
+              <div className="absolute right-0 mt-2 w-44 p-2 bg-bg rounded-2xl border border-border shadow-warm-lg z-30 space-y-1 text-xs">
+                {['all', 'A', 'B'].map((sec) => (
+                  <button
+                    key={sec}
+                    onClick={() => {
+                      setSelectedSection(sec);
+                      setActiveQuestionIndex(0);
+                      setIsFilterOpen(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 rounded-xl font-medium transition-colors ${
+                      selectedSection === sec
+                        ? 'bg-primary-tint text-primary-text font-bold'
+                        : 'text-ink-soft hover:bg-grey-card'
+                    }`}
+                  >
+                    {sec === 'all' ? 'All Sections' : `Section ${sec}`}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           <button
             onClick={handleExportPaper}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-[#0D1117] hover:bg-[#161B22] border border-[#1F2937] text-slate-200 font-mono text-xs tracking-wider transition-all"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-grey-card hover:bg-border/60 text-ink font-semibold text-xs rounded-pill border border-border/80 transition-colors"
           >
-            <Download size={13} />
-            <span>EXPORT PAPER</span>
+            <Download size={14} className="text-ink-soft" />
+            <span>Export paper</span>
           </button>
         </div>
+
       </div>
 
-      {/* ── TIMER & MARKS DISTRIBUTION COCKPIT ─────────────────────────────── */}
-      <section className="bg-[#0D1117] border border-[#1F2937] p-6 tactical-panel">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+      {/* ── QUESTION DISPLAY (ONE AT A TIME) ──────────────────────────────── */}
+      {activeQuestion && (
+        <div className="bg-bg rounded-card-lg border border-border p-6 sm:p-10 shadow-xs space-y-6 max-w-3xl mx-auto">
           
-          {/* Big Countdown Clock */}
-          <div className="md:col-span-5 flex items-center gap-4 border-b md:border-b-0 md:border-r border-[#1F2937] pb-4 md:pb-0 md:pr-6">
-            <div className="w-14 h-14 bg-black border border-[#FF3B30] flex items-center justify-center font-display text-2xl text-[#FF3B30] shadow-laser">
-              <Clock size={24} />
-            </div>
-            <div>
-              <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest block">
-                90-MINUTE EXAM TIMER
+          {/* Question Nav & Meta */}
+          <div className="flex items-center justify-between pb-4 border-b border-border/70">
+            <div className="flex items-center gap-2">
+              <span className="w-8 h-8 rounded-full bg-peach text-primary font-bold text-sm flex items-center justify-center">
+                Q{activeQuestionIndex + 1}
               </span>
-              <div className="font-display text-4xl text-white tracking-widest">
-                <span>{String(minutes).padStart(2, '0')}</span>:
-                <span className="text-[#FF3B30]">{String(seconds).padStart(2, '0')}</span>
+              <div>
+                <div className="text-sm font-bold text-ink flex items-center gap-2">
+                  <span>Section {activeQuestion.section}</span>
+                  <span className="text-ink-faint">•</span>
+                  <span className="text-primary-text">{activeQuestion.marks} Marks</span>
+                  {activeQuestion.is_compulsory && (
+                    <span className="px-2 py-0.5 bg-status-danger-bg text-status-danger text-[10px] font-bold rounded-pill">
+                      Compulsory
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5 ml-auto">
+            {/* Stepper controls */}
+            <div className="flex items-center gap-1.5 text-xs text-ink-soft">
               <button
-                onClick={() => setTimerRunning(!timerRunning)}
-                className={`p-2 border transition-all ${
-                  timerRunning 
-                    ? 'border-amber-500 bg-amber-500/20 text-amber-300' 
-                    : 'border-[#FF3B30] bg-[#FF3B30]/20 text-[#FF3B30]'
-                }`}
-                title={timerRunning ? 'Pause Timer' : 'Start Timer'}
+                disabled={activeQuestionIndex === 0}
+                onClick={() => setActiveQuestionIndex((prev) => Math.max(0, prev - 1))}
+                aria-label="Previous question"
+                className="w-8 h-8 rounded-pill flex items-center justify-center bg-grey-card hover:bg-border/60 disabled:opacity-40 transition-colors"
               >
-                {timerRunning ? <Pause size={14} /> : <Play size={14} className="fill-[#FF3B30]" />}
+                <ChevronLeft size={16} />
               </button>
+              <span className="font-semibold text-ink px-1">
+                {activeQuestionIndex + 1} / {filteredQuestions.length}
+              </span>
               <button
-                onClick={() => {
-                  setTimerRunning(false);
-                  setSecondsRemaining(90 * 60);
-                }}
-                className="p-2 border border-[#1F2937] bg-[#07090D] text-slate-400 hover:text-white"
-                title="Reset Timer"
+                disabled={activeQuestionIndex >= filteredQuestions.length - 1}
+                onClick={() =>
+                  setActiveQuestionIndex((prev) =>
+                    Math.min(filteredQuestions.length - 1, prev + 1)
+                  )
+                }
+                aria-label="Next question"
+                className="w-8 h-8 rounded-pill flex items-center justify-center bg-grey-card hover:bg-border/60 disabled:opacity-40 transition-colors"
               >
-                <RotateCcw size={14} />
+                <ChevronRight size={16} />
               </button>
             </div>
           </div>
 
-          {/* Marks Distribution Mini-Chart */}
-          <div className="md:col-span-7 flex flex-col justify-center">
-            <div className="flex items-center justify-between text-xs font-mono text-slate-400 mb-2">
-              <span className="uppercase tracking-wider flex items-center gap-1.5">
-                <BarChart2 size={13} className="text-[#FF3B30]" />
-                HISTORICAL MARKS WEIGHT DISTRIBUTION
+          {/* Question Prompt */}
+          <div className="space-y-3">
+            <h2 className="text-lg sm:text-xl font-bold text-ink leading-relaxed">
+              {activeQuestion.text}
+            </h2>
+            <div className="flex items-center gap-3 text-xs text-ink-soft">
+              <span>Target length: <strong className="text-ink font-semibold">{target.text}</strong></span>
+              <span className="text-ink-faint">•</span>
+              <span
+                className={`font-semibold px-2 py-0.5 rounded-pill ${
+                  isTargetMet
+                    ? 'bg-status-success-bg text-status-success'
+                    : words > 0
+                    ? 'bg-peach text-primary-text'
+                    : 'bg-grey-card text-ink-soft'
+                }`}
+              >
+                {words} words written
               </span>
-              <span className="text-white font-bold">TOTAL: 35 MARKS</span>
             </div>
+          </div>
 
-            <div className="grid grid-cols-5 gap-2 font-mono text-xs">
-              {mockQuestions.map((q, idx) => (
-                <div key={q.id} className="p-2 bg-[#07090D] border border-[#1F2937] text-center">
-                  <div className="text-[10px] text-slate-500">Q{idx + 1} ({q.section})</div>
-                  <div className="text-sm font-bold text-[#FF3B30]">{q.marks}M</div>
-                  <div className="text-[9px] text-emerald-400">{getRecommendedLength(q.marks).min}w</div>
+          {/* Answer Textarea */}
+          <div className="space-y-2">
+            <textarea
+              rows={6}
+              placeholder="Type your practice response here to calibrate your timing and depth..."
+              value={userAnswers[activeQuestion.id] || ''}
+              onChange={(e) => handleTextChange(activeQuestion.id, e.target.value)}
+              className="w-full p-4 bg-grey-card rounded-2xl border border-border text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-primary-text transition-all leading-relaxed"
+            />
+          </div>
+
+          {/* Sample Answer Key Accordion */}
+          <div className="pt-2">
+            <button
+              onClick={() => toggleAnswerReveal(activeQuestion.id)}
+              className="inline-flex items-center gap-2 text-xs font-semibold text-primary-text hover:text-primary transition-colors"
+            >
+              {isRevealed ? <EyeOff size={15} /> : <Eye size={15} />}
+              <span>{isRevealed ? 'Hide sample answer criteria' : 'Show sample answer criteria'}</span>
+            </button>
+
+            {isRevealed && (
+              <div className="mt-4 p-5 bg-bg-cream rounded-2xl border border-border/80 text-xs sm:text-sm text-ink-soft space-y-2.5 leading-relaxed">
+                <div className="text-xs font-bold text-primary uppercase tracking-wider">
+                  Model Answer Criteria & Points:
                 </div>
-              ))}
-            </div>
+                <p>1. State definition clearly with proper notations and keywords.</p>
+                <p>2. Show boundary cases and comparative examples directly addressing Section {activeQuestion.section} expectations.</p>
+                <p>3. Conclude with a real-world schema or counter-example illustrating the concept.</p>
+              </div>
+            )}
           </div>
 
         </div>
-      </section>
-
-      {/* ── QUESTION LIST WITH LIVE WORD COUNTER ────────────────────────────── */}
-      <div className="space-y-6">
-        {mockQuestions.map((q, idx) => {
-          const words = getWordCount(userAnswers[q.id]);
-          const target = getRecommendedLength(q.marks);
-          const isTargetMet = words >= target.min && words <= target.max;
-          const isUnder = words > 0 && words < target.min;
-          const isRevealed = revealedAnswers[q.id];
-
-          return (
-            <div key={q.id} className="bg-[#0D1117] border border-[#1F2937] p-6 tactical-panel space-y-4">
-              
-              {/* Question Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#1F2937] pb-3">
-                <div className="flex items-center gap-3">
-                  <span className="w-7 h-7 bg-[#FF3B30] text-black font-display text-lg flex items-center justify-center font-bold">
-                    Q{idx + 1}
-                  </span>
-                  <div>
-                    <div className="font-mono text-xs text-white font-bold flex items-center gap-2">
-                      <span>SECTION {q.section}</span>
-                      <span className="text-slate-500">•</span>
-                      <span className="text-[#FF3B30]">{q.marks} MARKS</span>
-                      {q.is_compulsory && (
-                        <span className="px-1.5 py-0.2 bg-red-950 text-red-400 border border-red-800 text-[9px] uppercase">
-                          COMPULSORY
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Length Recommendation Badge */}
-                <div className="flex items-center gap-3 font-mono text-xs">
-                  <span className="text-slate-400">
-                    RECOMMENDED: <strong className="text-white">{target.text}</strong>
-                  </span>
-                  <div className={`px-2 py-0.5 text-[10px] font-bold border ${
-                    isTargetMet 
-                      ? 'border-emerald-500 bg-emerald-950/60 text-emerald-300' 
-                      : isUnder 
-                      ? 'border-amber-500 bg-amber-950/60 text-amber-300'
-                      : 'border-slate-800 bg-[#07090D] text-slate-500'
-                  }`}>
-                    {words} WORDS
-                  </div>
-                </div>
-              </div>
-
-              {/* Question Text */}
-              <p className="text-sm font-sans text-white leading-relaxed font-medium">
-                {q.text}
-              </p>
-
-              {/* User Answer Textarea */}
-              <div className="space-y-1">
-                <textarea
-                  rows={4}
-                  placeholder="Type your practice response here to calibrate answer length..."
-                  value={userAnswers[q.id] || ''}
-                  onChange={(e) => handleTextChange(q.id, e.target.value)}
-                  className="w-full p-3 bg-[#07090D] border border-[#1F2937] font-mono text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-[#FF3B30]"
-                />
-              </div>
-
-              {/* Reveal Sample Answer */}
-              <div className="pt-2 border-t border-[#1F2937]">
-                <button
-                  onClick={() => toggleAnswerReveal(q.id)}
-                  className="flex items-center gap-1.5 text-xs font-mono text-slate-400 hover:text-white transition-colors"
-                >
-                  {isRevealed ? <EyeOff size={13} /> : <Eye size={13} className="text-[#FF3B30]" />}
-                  <span>{isRevealed ? 'HIDE SAMPLE ANSWER' : 'SHOW SAMPLE ANSWER KEY'}</span>
-                </button>
-
-                {isRevealed && (
-                  <div className="mt-3 p-4 bg-[#05080C] border-l-2 border-[#FF3B30] border-y border-r border-[#1F2937] font-mono text-xs text-slate-300 space-y-2 leading-relaxed">
-                    <div className="text-[10px] text-[#FF3B30] font-bold uppercase tracking-wider">
-                      SAMPLE ANSWER CRITERIA:
-                    </div>
-                    <p>
-                      1. State precise definition with formal notation.
-                    </p>
-                    <p>
-                      2. Highlight the boundary condition where 3NF allows prime attribute on RHS, but BCNF strictly requires LHS to be superkey.
-                    </p>
-                    <p>
-                      3. Conclude with a concrete counter-example schema: R(A, B, C) with F = &#123;AB → C, C → B&#125;.
-                    </p>
-                  </div>
-                )}
-              </div>
-
-            </div>
-          );
-        })}
-      </div>
+      )}
 
       {/* Toast */}
       {exportToast && (
-        <div className="fixed bottom-6 left-6 z-50 px-4 py-2 bg-emerald-950 border border-emerald-500 text-emerald-300 font-mono text-xs shadow-2xl flex items-center gap-2 animate-bounce">
-          <CheckCircle2 size={14} className="text-emerald-400" />
+        <div className="fixed bottom-6 left-6 z-50 px-4 py-2.5 bg-ink text-white rounded-pill text-xs font-semibold shadow-warm flex items-center gap-2">
+          <CheckCircle2 size={16} className="text-status-success" />
           <span>{exportToast}</span>
         </div>
       )}
