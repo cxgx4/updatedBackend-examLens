@@ -67,11 +67,14 @@ export const CardsPage: React.FC = () => {
       setCards(updated);
 
       if (willBeMastered) {
+        const primary = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || 'orange';
+        const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || 'purple';
+        const peach = getComputedStyle(document.documentElement).getPropertyValue('--peach').trim() || 'peachpuff';
         confetti({
           particleCount: 32,
           spread: 60,
           origin: { y: 0.7 },
-          colors: ['#FF8233', '#B54DFF', '#FFE9D9'],
+          colors: [primary, accent, peach],
           disableForReducedMotion: true,
         });
         showToast('Card marked as mastered! Keep going 🎉');

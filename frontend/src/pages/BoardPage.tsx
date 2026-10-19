@@ -203,13 +203,13 @@ export const BoardPage: React.FC<BoardPageProps> = ({
           >
             <div>
               {/* Original Illustration: Notebook & Knowledge Spark */}
-              <div className="w-16 h-16 rounded-2xl bg-peach/70 flex items-center justify-center mb-6 group-hover:scale-105 transition-transform">
+              <div className="w-16 h-16 rounded-2xl bg-peach/70 flex items-center justify-center mb-6 group-hover:scale-105 transition-transform text-primary">
                 <svg width="34" height="34" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect x="6" y="4" width="24" height="28" rx="4" fill="#FFFFFF" stroke="#FF8233" strokeWidth="2" />
-                  <line x1="11" y1="11" x2="21" y2="11" stroke="#282828" strokeWidth="2" strokeLinecap="round" />
-                  <line x1="11" y1="17" x2="25" y2="17" stroke="#6F6860" strokeWidth="2" strokeLinecap="round" />
-                  <line x1="11" y1="23" x2="19" y2="23" stroke="#6F6860" strokeWidth="2" strokeLinecap="round" />
-                  <circle cx="27" cy="8" r="3" fill="#FF8233" />
+                  <rect x="6" y="4" width="24" height="28" rx="4" className="fill-bg stroke-primary" strokeWidth="2" />
+                  <line x1="11" y1="11" x2="21" y2="11" className="stroke-ink" strokeWidth="2" strokeLinecap="round" />
+                  <line x1="11" y1="17" x2="25" y2="17" className="stroke-ink-soft" strokeWidth="2" strokeLinecap="round" />
+                  <line x1="11" y1="23" x2="19" y2="23" className="stroke-ink-soft" strokeWidth="2" strokeLinecap="round" />
+                  <circle cx="27" cy="8" r="3" className="fill-primary" />
                 </svg>
               </div>
 
@@ -236,10 +236,10 @@ export const BoardPage: React.FC<BoardPageProps> = ({
               {/* Original Illustration: Layered Flashcards */}
               <div className="w-16 h-16 rounded-2xl bg-accent-tint/60 flex items-center justify-center mb-6 group-hover:scale-105 transition-transform">
                 <svg width="34" height="34" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect x="10" y="8" width="20" height="24" rx="4" fill="#B54DFF" fillOpacity="0.2" transform="rotate(8 10 8)" stroke="#B54DFF" strokeWidth="1.5" />
-                  <rect x="6" y="6" width="22" height="24" rx="4" fill="#FFFFFF" stroke="#B54DFF" strokeWidth="2" />
-                  <circle cx="17" cy="18" r="4" fill="#B54DFF" fillOpacity="0.2" />
-                  <path d="M15 18L16.5 19.5L19.5 16.5" stroke="#B54DFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  <rect x="10" y="8" width="20" height="24" rx="4" className="fill-accent/20 stroke-accent" strokeWidth="1.5" transform="rotate(8 10 8)" />
+                  <rect x="6" y="6" width="22" height="24" rx="4" className="fill-bg stroke-accent" strokeWidth="2" />
+                  <circle cx="17" cy="18" r="4" className="fill-accent/20" />
+                  <path d="M15 18L16.5 19.5L19.5 16.5" className="stroke-accent" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
 
@@ -266,10 +266,10 @@ export const BoardPage: React.FC<BoardPageProps> = ({
               {/* Original Illustration: Target Spark & Question */}
               <div className="w-16 h-16 rounded-2xl bg-peach/70 flex items-center justify-center mb-6 group-hover:scale-105 transition-transform">
                 <svg width="34" height="34" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="18" cy="18" r="14" fill="#FFFFFF" stroke="#FF8233" strokeWidth="2" />
-                  <circle cx="18" cy="18" r="7" stroke="#FF8233" strokeWidth="1.5" strokeDasharray="2 2" />
-                  <path d="M16 13C16 11.5 17 11 18 11C19 11 20 11.5 20 12.5C20 13.5 18 14.5 18 16" stroke="#282828" strokeWidth="2" strokeLinecap="round" />
-                  <circle cx="18" cy="20.5" r="1.25" fill="#282828" />
+                  <circle cx="18" cy="18" r="14" className="fill-bg stroke-primary" strokeWidth="2" />
+                  <circle cx="18" cy="18" r="7" className="stroke-primary" strokeWidth="1.5" strokeDasharray="2 2" />
+                  <path d="M16 13C16 11.5 17 11 18 11C19 11 20 11.5 20 12.5C20 13.5 18 14.5 18 16" className="stroke-ink" strokeWidth="2" strokeLinecap="round" />
+                  <circle cx="18" cy="20.5" r="1.25" className="fill-ink" />
                 </svg>
               </div>
 

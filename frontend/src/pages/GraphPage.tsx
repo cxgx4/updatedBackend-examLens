@@ -95,9 +95,16 @@ export const GraphPage: React.FC = () => {
         d3.forceCollide().radius((d: any) => Math.sqrt(d.weight || 10) * 4 + 20)
       );
 
+    // Read brand tokens
+    const borderCol = getComputedStyle(document.documentElement).getPropertyValue('--border').trim() || 'currentColor';
+    const primaryCol = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || 'currentColor';
+    const peachCol = getComputedStyle(document.documentElement).getPropertyValue('--peach').trim() || 'currentColor';
+    const creamCol = getComputedStyle(document.documentElement).getPropertyValue('--bg-cream').trim() || 'currentColor';
+    const inkCol = getComputedStyle(document.documentElement).getPropertyValue('--ink').trim() || 'currentColor';
+
     // Connecting Links
     const link = g.append('g')
-      .attr('stroke', '#EFE6DC')
+      .attr('stroke', borderCol)
       .attr('stroke-opacity', 0.8)
       .selectAll('line')
       .data(simLinks)
@@ -134,15 +141,15 @@ export const GraphPage: React.FC = () => {
     // Outer circle
     node.append('circle')
       .attr('r', (d) => Math.sqrt(d.weight || 10) * 3 + 14)
-      .attr('fill', (d) => (d.isGap ? '#FFE9D9' : '#FAF5EE'))
-      .attr('stroke', (d) => (d.isGap ? '#FF8233' : d.color || '#FF8233'))
+      .attr('fill', (d) => (d.isGap ? peachCol : creamCol))
+      .attr('stroke', (d) => (d.isGap ? primaryCol : d.color || primaryCol))
       .attr('stroke-width', (d) => (d.isGap ? 2.5 : 2))
       .attr('stroke-dasharray', (d) => (d.isGap ? '5 3' : 'none'));
 
     // Inner badge
     node.append('circle')
       .attr('r', (d) => Math.sqrt(d.weight || 10) * 2 + 6)
-      .attr('fill', (d) => d.color || '#FF8233')
+      .attr('fill', (d) => d.color || primaryCol)
       .attr('fill-opacity', 0.2);
 
     // Marks label
@@ -150,7 +157,7 @@ export const GraphPage: React.FC = () => {
       .text((d) => `${d.weight}M`)
       .attr('text-anchor', 'middle')
       .attr('y', 4)
-      .attr('fill', '#282828')
+      .attr('fill', inkCol)
       .attr('font-size', '11px')
       .attr('font-family', 'Figtree, sans-serif')
       .attr('font-weight', 'bold');
@@ -160,7 +167,7 @@ export const GraphPage: React.FC = () => {
       .text((d) => d.name)
       .attr('text-anchor', 'middle')
       .attr('y', (d) => Math.sqrt(d.weight || 10) * 3 + 30)
-      .attr('fill', '#282828')
+      .attr('fill', inkCol)
       .attr('font-size', '12px')
       .attr('font-family', 'Figtree, sans-serif')
       .attr('font-weight', '600');
