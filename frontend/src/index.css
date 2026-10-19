@@ -4,421 +4,184 @@
 
 @layer base {
   :root {
-    --canvas: #07090D;
-    --panel: #0D1117;
-    --border: #1F2937;
-    --brand-red: #FF3B30;
+    /* Brand tokens — Light mode (Default) */
+    --bg: #FFFFFF;
+    --bg-cream: #FAF5EE;
+    --bg-warm: #F8F4F0;
+    --peach: #FFE9D9;
+    --grey-card: #F2F2F2;
+    --border: #EFE6DC;
+
+    --ink: #282828;
+    --ink-soft: #6F6860;
+    --ink-faint: #A69E96;
+
+    --primary: #FF8233;
+    --primary-hover: #F2710F;
+    --primary-tint: #FFE9D9;
+    --primary-deep: #EA5F0C;
+    --primary-text: #C2410C;
+    --on-primary: #2A1507;
+
+    --accent: #B54DFF;
+    --accent-tint: #EBD9FF;
+    --accent-soft: #B47FFE;
+
+    --status-success: #16A34A;
+    --status-warning: #CA8A04;
+    --status-danger: #DC2626;
+    --status-success-bg: #DCFCE7;
+    --status-warning-bg: #FEF9C3;
+    --status-danger-bg: #FEE2E2;
+
+    --topic-orange: #FF8233;
+    --topic-purple: #B54DFF;
+    --topic-teal: #0D9488;
+    --topic-rose: #E11D48;
+    --topic-olive: #65A30D;
+    --topic-sky: #0284C7;
+
+    --hero-gradient: linear-gradient(180deg, #FFE9D9 0%, #FDEBF0 55%, #FFFFFF 100%);
+    --shadow-warm: 0 8px 30px rgba(120, 60, 20, 0.08);
+    --shadow-warm-lg: 0 16px 40px rgba(120, 60, 20, 0.12);
   }
 
-  html.light {
-    --canvas: #F5F7FA;
-    --panel: #FFFFFF;
-    --border: #D1D9E6;
-    --brand-red: #DC2626;
+  html.dark {
+    /* Brand tokens — Dark mode (Warm espresso, not blue-black) */
+    --bg: #17120F;
+    --bg-cream: #211A16;
+    --bg-warm: #1E1713;
+    --peach: #38241A;
+    --grey-card: #2A211C;
+    --border: #3A2E26;
+
+    --ink: #FFF3E8;
+    --ink-soft: #B8A99D;
+    --ink-faint: #7D6F64;
+
+    --primary: #FF8233;
+    --primary-hover: #F2710F;
+    --primary-tint: #3A2112;
+    --primary-deep: #EA5F0C;
+    --primary-text: #FF9B5E;
+    --on-primary: #2A1507;
+
+    --accent: #B54DFF;
+    --accent-tint: #2F1E40;
+    --accent-soft: #C692FF;
+
+    --status-success: #22C55E;
+    --status-warning: #EAB308;
+    --status-danger: #EF4444;
+    --status-success-bg: #15321E;
+    --status-warning-bg: #332608;
+    --status-danger-bg: #381313;
+
+    --topic-orange: #FF8233;
+    --topic-purple: #B54DFF;
+    --topic-teal: #14B8A6;
+    --topic-rose: #FB7185;
+    --topic-olive: #84CC16;
+    --topic-sky: #38BDF8;
+
+    --hero-gradient: linear-gradient(180deg, #2D1A12 0%, #251620 55%, #17120F 100%);
+    --shadow-warm: 0 8px 30px rgba(0, 0, 0, 0.4);
+    --shadow-warm-lg: 0 16px 40px rgba(0, 0, 0, 0.5);
   }
 
   body {
-    background-color: var(--canvas);
-    color: #E2E8F0;
-    font-family: 'Inter', sans-serif;
+    background-color: var(--bg);
+    color: var(--ink);
+    font-family: 'Pangea Afrikan', 'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
     min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
-  html.light body {
-    color: #1E293B;
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--ink);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
   }
 
-  /* Custom sharp scrollbars */
+  /* Accessible, visible focus indicators */
+  :focus-visible {
+    outline: 2px solid var(--primary-text);
+    outline-offset: 2px;
+  }
+
+  /* Friendly soft scrollbars */
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
   }
   ::-webkit-scrollbar-track {
-    background: #07090D;
+    background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: #1F2937;
-    border-radius: 0px;
+    background: var(--border);
+    border-radius: 999px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #FF3B30;
-  }
-
-  html.light ::-webkit-scrollbar-track {
-    background: #F5F7FA;
-  }
-  html.light ::-webkit-scrollbar-thumb {
-    background: #CBD5E1;
-  }
-  html.light ::-webkit-scrollbar-thumb:hover {
-    background: #DC2626;
+    background: var(--ink-faint);
   }
 }
 
-/* Film grain effect */
-.bg-grain {
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.035'/%3E%3C/svg%3E");
-}
-html.light .bg-grain {
-  opacity: 0.35;
+/* Background hero gradient container */
+.bg-hero-gradient {
+  background: var(--hero-gradient);
 }
 
-/* Blueprint dot-grid */
-.bg-grid-dots {
-  background-size: 24px 24px;
-  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
-}
-html.light .bg-grid-dots {
-  background-image: radial-gradient(circle, rgba(0, 0, 0, 0.055) 1px, transparent 1px);
-}
-
-.bg-grid-lines {
-  background-size: 40px 40px;
-  background-image: 
-    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-}
-html.light .bg-grid-lines {
-  background-image: 
-    linear-gradient(to right, rgba(0, 0, 0, 0.04) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(0, 0, 0, 0.04) 1px, transparent 1px);
-}
-
-/* Laser scanline effect */
-.scanline-bar {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, #FF3B30, transparent);
-  box-shadow: 0 0 12px #FF3B30;
-  pointer-events: none;
-}
-html.light .scanline-bar {
-  opacity: 0.3;
-}
-
-/* Micro-badge utilities */
-.badge-tech {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.65rem;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  padding: 2px 6px;
-  border: 1px solid #1F2937;
-  background: rgba(13, 17, 23, 0.8);
-}
-html.light .badge-tech {
-  border-color: #D1D9E6;
-  background: rgba(255, 255, 255, 0.9);
-  color: #334155;
-}
-
-/* Sharp tactical card border */
-.tactical-panel {
-  background: #0D1117;
-  border: 1px solid #1F2937;
-  position: relative;
-}
-html.light .tactical-panel {
-  background: #FFFFFF;
-  border-color: #D1D9E6;
-}
-
-.tactical-panel::before {
-  content: '';
-  position: absolute;
-  top: -1px;
-  left: -1px;
-  width: 6px;
-  height: 6px;
-  border-top: 2px solid #FF3B30;
-  border-left: 2px solid #FF3B30;
-  pointer-events: none;
-}
-
-/* KaTeX tweaks for dark tactical look */
+/* KaTeX tweaks for student-friendly warm look */
 .katex {
-  color: #F8FAFC !important;
-  font-size: 1.1em !important;
+  color: var(--ink) !important;
+  font-size: 1.05em !important;
 }
+
 .katex-display {
-  margin: 0.8em 0 !important;
-  padding: 0.5em 0.8em;
-  background: rgba(0, 0, 0, 0.4);
-  border-left: 2px solid #FF3B30;
-}
-html.light .katex {
-  color: #0F172A !important;
-}
-html.light .katex-display {
-  background: rgba(241, 245, 249, 0.7);
+  margin: 0.75em 0 !important;
+  padding: 0.85em 1.1em;
+  background-color: var(--bg-cream) !important;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  overflow-x: auto;
 }
 
-
-/* ═══════════════════════════════════════════════════════════════════
-   LIGHT MODE — COMPREHENSIVE PALETTE OVERRIDES
-   Only CSS selectors below; zero TSX component files are modified.
-   ═══════════════════════════════════════════════════════════════════ */
-
-/* ── BACKGROUND CANVAS LEVELS ─────────────────────────────────────
-   Dark-mode hex           Light-mode replacement
-   #040608, #05080C        → #F8FAFC  (brightest paper)
-   #060A10, #07090D        → #F5F7FA  (main canvas)
-   #080B10, #090D13        → #F1F5F9  (recessed wells)
-   #0B0F15, #0B1017        → #EEF2F7
-   #0D1117                 → #FFFFFF  (primary panel / card)
-   #121720                 → #F8FAFC  (elevated panel)
-   #141820, #161B22        → #F1F5F9  (active / selected state)
-   #1A2230, #1E2530        → #E8EDF3  (hover state)
-   #1a1c22                 → #E2E8F0  (overlay layer)
-   #1F2937  (border-dark)  → also used as bg in a few spots
-   ─────────────────────────────────────────────────────────────── */
-html.light .bg-\[\#040608\] { background-color: #F8FAFC !important; }
-html.light .bg-\[\#05080C\] { background-color: #F8FAFC !important; }
-html.light .bg-\[\#060A10\] { background-color: #F5F7FA !important; }
-html.light .bg-\[\#07090D\] { background-color: #F5F7FA !important; }
-html.light .bg-\[\#080B10\] { background-color: #F1F5F9 !important; }
-html.light .bg-\[\#090D13\] { background-color: #F1F5F9 !important; }
-html.light .bg-\[\#0B0F15\] { background-color: #EEF2F7 !important; }
-html.light .bg-\[\#0B1017\] { background-color: #EEF2F7 !important; }
-html.light .bg-\[\#0D1117\] { background-color: #FFFFFF !important; }
-html.light .bg-\[\#121720\] { background-color: #F8FAFC !important; }
-html.light .bg-\[\#141820\] { background-color: #F1F5F9 !important; }
-html.light .bg-\[\#161B22\] { background-color: #F1F5F9 !important; }
-html.light .bg-\[\#1a1c22\] { background-color: #E2E8F0 !important; }
-html.light .bg-\[\#1A2230\] { background-color: #E8EDF3 !important; }
-html.light .bg-\[\#1E2530\] { background-color: #E8EDF3 !important; }
-html.light .bg-\[\#1F2937\] { background-color: #E2E8F0 !important; }
-
-/* Opacity-variant canvas backgrounds (navbar, modal scrims) */
-html.light .bg-\[\#07090D\]\/90 { background-color: rgba(245, 247, 250, 0.92) !important; }
-html.light .bg-\[\#0D1117\]\/90 { background-color: rgba(255, 255, 255, 0.92) !important; }
-
-/* Modal backdrop overlays — make lighter so content is still readable */
-html.light .bg-black\/70  { background-color: rgba(0, 0, 0, 0.25) !important; }
-html.light .bg-black\/80  { background-color: rgba(0, 0, 0, 0.30) !important; }
-html.light .bg-black\/85  { background-color: rgba(0, 0, 0, 0.32) !important; }
-html.light .bg-black\/60  { background-color: rgba(0, 0, 0, 0.18) !important; }
-
-/* ── bg-black used as full-opacity backgrounds ────────────────── */
-html.light .bg-black { background-color: #F1F5F9 !important; }
-
-/* Accent backgrounds — these stay brand-colored, but soften opacity variants */
-html.light .bg-\[\#FF3B30\]\/20 { background-color: rgba(220, 38, 38, 0.12) !important; }
-html.light .bg-\[\#FF3B30\]\/15 { background-color: rgba(220, 38, 38, 0.10) !important; }
-html.light .bg-\[\#FF3B30\]\/10 { background-color: rgba(220, 38, 38, 0.08) !important; }
-html.light .bg-\[\#FF3B30\]\/5  { background-color: rgba(220, 38, 38, 0.05) !important; }
-html.light .bg-\[\#FF3B30\]\/25 { background-color: rgba(220, 38, 38, 0.14) !important; }
-
-/* bg-black/opacity — used inside panels (code blocks, tooltips) */
-html.light .bg-black\/50 { background-color: rgba(241, 245, 249, 0.7) !important; }
-html.light .bg-black\/40 { background-color: rgba(241, 245, 249, 0.6) !important; }
-
-/* Gradient from→to on hero section */
-html.light .from-\[\#0D1117\] { --tw-gradient-from: #FFFFFF !important; }
-html.light .to-\[\#07090D\]   { --tw-gradient-to:   #F5F7FA !important; }
-html.light .from-\[\#FF3B30\]\/20 { --tw-gradient-from: rgba(220, 38, 38, 0.10) !important; }
-html.light .to-\[\#FF3B30\]\/5    { --tw-gradient-to:   rgba(220, 38, 38, 0.03) !important; }
-html.light .from-\[\#FF3B30\]\/30 { --tw-gradient-from: rgba(220, 38, 38, 0.15) !important; }
-html.light .to-\[\#FF3B30\]\/10   { --tw-gradient-to:   rgba(220, 38, 38, 0.06) !important; }
-
-/* White-on-white: keep small radial glow visible */
-html.light .bg-\[\#FF3B30\]\/10.rounded-full.blur-\[100px\] { opacity: 0.6; }
-html.light .bg-white\/20 { background-color: rgba(255, 255, 255, 0.5) !important; }
-
-/* Teal-ish special colors that stay semantic */
-/* bg-[#06B6D4] is only used inline for topic nodes; keep as-is */
-/* bg-[#A3E635] also stays */
-/* bg-[#E02D23] is hover red; keep */
-
-/* Emerald contextual backgrounds — invert from dark-950 to light-50 */
-html.light .bg-emerald-950    { background-color: #ecfdf5 !important; }
-html.light .bg-emerald-950\/80 { background-color: rgba(236, 253, 245, 0.85) !important; }
-html.light .bg-emerald-950\/60 { background-color: rgba(236, 253, 245, 0.65) !important; }
-html.light .bg-emerald-950\/20 { background-color: rgba(236, 253, 245, 0.25) !important; }
-html.light .bg-emerald-950\/40 { background-color: rgba(236, 253, 245, 0.45) !important; }
-
-/* Amber contextual backgrounds */
-html.light .bg-amber-950      { background-color: #fffbeb !important; }
-html.light .bg-amber-950\/40  { background-color: rgba(255, 251, 235, 0.5) !important; }
-html.light .bg-amber-950\/20  { background-color: rgba(255, 251, 235, 0.3) !important; }
-
-/* Red contextual backgrounds */
-html.light .bg-red-950 { background-color: #fef2f2 !important; }
-
-/* Cyan contextual backgrounds */
-html.light .bg-cyan-950\/40 { background-color: rgba(236, 254, 255, 0.5) !important; }
-
-/* Violet contextual backgrounds */
-html.light .bg-violet-500\/10 { background-color: rgba(139, 92, 246, 0.06) !important; }
-html.light .bg-cyan-400\/10   { background-color: rgba(6, 182, 212, 0.06) !important; }
-html.light .bg-lime-400\/10   { background-color: rgba(163, 230, 53, 0.06) !important; }
-
-/* Slate contextual (tag backgrounds) */
-html.light .bg-slate-900  { background-color: #F1F5F9 !important; }
-html.light .bg-slate-900\/60 { background-color: rgba(241, 245, 249, 0.7) !important; }
-
-
-/* ── BORDER COLORS ────────────────────────────────────────────── */
-html.light .border-\[\#1F2937\]   { border-color: #D1D9E6 !important; }
-html.light .border-\[\#07090D\]   { border-color: #E2E8F0 !important; }
-html.light .border-y.border-\[\#1F2937\] { border-color: #D1D9E6 !important; }
-
-/* Keep accent borders untouched (#FF3B30, #A3E635 stay) */
-
-/* Opacity-variant accent borders */
-html.light .border-\[\#FF3B30\]\/50 { border-color: rgba(220, 38, 38, 0.40) !important; }
-html.light .border-\[\#FF3B30\]\/40 { border-color: rgba(220, 38, 38, 0.30) !important; }
-html.light .border-\[\#FF3B30\]\/60 { border-color: rgba(220, 38, 38, 0.45) !important; }
-html.light .border-\[\#A3E635\]\/40 { border-color: rgba(132, 204, 22, 0.35) !important; }
-
-/* Slate border tones */
-html.light .border-slate-600 { border-color: #94A3B8 !important; }
-html.light .border-slate-700 { border-color: #94A3B8 !important; }
-html.light .border-slate-800 { border-color: #CBD5E1 !important; }
-html.light .border-slate-900 { border-color: #E2E8F0 !important; }
-
-/* Emerald / amber / cyan / red borders lighten */
-html.light .border-emerald-600\/60 { border-color: rgba(16, 185, 129, 0.45) !important; }
-html.light .border-emerald-600\/40 { border-color: rgba(16, 185, 129, 0.35) !important; }
-html.light .border-emerald-800 { border-color: #6ee7b7 !important; }
-html.light .border-emerald-900 { border-color: #a7f3d0 !important; }
-html.light .border-emerald-900\/60 { border-color: rgba(167, 243, 208, 0.5) !important; }
-html.light .border-emerald-500 { border-color: #10b981 !important; }
-html.light .border-amber-500   { border-color: #f59e0b !important; }
-html.light .border-amber-500\/40 { border-color: rgba(245, 158, 11, 0.35) !important; }
-html.light .border-amber-500\/30 { border-color: rgba(245, 158, 11, 0.25) !important; }
-html.light .border-amber-500\/50 { border-color: rgba(245, 158, 11, 0.40) !important; }
-html.light .border-amber-800 { border-color: #fbbf24 !important; }
-html.light .border-amber-900\/40 { border-color: rgba(251, 191, 36, 0.35) !important; }
-html.light .border-red-800   { border-color: #fca5a5 !important; }
-html.light .border-cyan-800  { border-color: #67e8f9 !important; }
-
-/* Border-b-2 on active nav tab — keep the red */
-
-
-/* ── TEXT COLORS ──────────────────────────────────────────────── */
-html.light .text-white { color: #0F172A !important; }
-html.light .text-\[\#E2E8F0\] { color: #1E293B !important; }
-
-/* Slate text tones — remap to inverse-ish readable grays */
-html.light .text-slate-200 { color: #334155 !important; }
-html.light .text-slate-300 { color: #475569 !important; }
-html.light .text-slate-400 { color: #64748B !important; }
-html.light .text-slate-500 { color: #94A3B8 !important; }
-html.light .text-slate-600 { color: #475569 !important; }
-html.light .text-slate-700 { color: #334155 !important; }
-
-/* Accent text — slightly deepen red for better contrast on white */
-html.light .text-\[\#FF3B30\] { color: #DC2626 !important; }
-/* Teal / lime accent text keep their hue but shift darker */
-html.light .text-\[\#06B6D4\] { color: #0891B2 !important; }
-html.light .text-\[\#A3E635\] { color: #65A30D !important; }
-
-/* Emerald text shades */
-html.light .text-emerald-400 { color: #059669 !important; }
-html.light .text-emerald-300 { color: #10B981 !important; }
-
-/* Amber text shades */
-html.light .text-amber-400 { color: #D97706 !important; }
-html.light .text-amber-300 { color: #F59E0B !important; }
-html.light .text-amber-200 { color: #D97706 !important; }
-
-/* Red text shades */
-html.light .text-red-400   { color: #DC2626 !important; }
-
-/* Cyan text shades */
-html.light .text-cyan-400  { color: #0891B2 !important; }
-html.light .text-cyan-300  { color: #06B6D4 !important; }
-
-/* Violet text shades */
-html.light .text-violet-500 { color: #7C3AED !important; }
-
-/* Lime text */
-html.light .text-lime-400 { color: #65A30D !important; }
-
-/* text-black is used on solid accent buttons — keep as-is */
-
-
-/* ── SHADOWS ──────────────────────────────────────────────────── */
-/* Tone down laser glow in light mode */
-html.light .shadow-laser {
-  box-shadow: 0 0 8px rgba(220, 38, 38, 0.25), 0 0 16px rgba(220, 38, 38, 0.10) !important;
-}
-html.light .shadow-2xl {
-  box-shadow: 0 10px 40px -8px rgba(0, 0, 0, 0.10) !important;
-}
-html.light .shadow-panel {
-  box-shadow: 0 2px 12px -2px rgba(0, 0, 0, 0.06) !important;
+/* Deprecated tactical styles cleanly mapped or hidden */
+.bg-grain,
+.bg-grid-dots,
+.bg-grid-lines,
+.scanline-bar {
+  display: none !important;
 }
 
-
-/* ── SVG INSIDE D3 GRAPH ──────────────────────────────────────── */
-html.light svg text {
-  fill: #1E293B;
+.tactical-panel {
+  background-color: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 24px;
 }
 
-
-/* ── SELECTION HIGHLIGHT ──────────────────────────────────────── */
-html.light ::selection {
-  background-color: #DC2626;
-  color: #FFFFFF;
+.badge-tech {
+  font-family: inherit;
+  font-size: 0.75rem;
+  letter-spacing: normal;
+  text-transform: none;
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background-color: var(--bg-cream);
+  color: var(--ink-soft);
 }
 
-
-/* ── MISC ELEMENT TWEAKS ──────────────────────────────────────── */
-
-/* Custom cursor reticle: outer ring should be dark on light bg */
-html.light .border-slate-500\/50 {
-  border-color: rgba(100, 116, 139, 0.4) !important;
+/* Respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
-
-/* Ping / pulse indicators: swap from emerald brightness to slightly darker */
-html.light .bg-emerald-400 { background-color: #10b981 !important; }
-html.light .bg-emerald-500 { background-color: #059669 !important; }
-
-/* Range input accent */
-html.light input[type="range"] {
-  accent-color: #DC2626;
-}
-
-/* Placeholder text inside inputs */
-html.light .placeholder-slate-600::placeholder { color: #94A3B8 !important; }
-html.light .placeholder-slate-500::placeholder { color: #94A3B8 !important; }
-
-/* Focus ring on inputs */
-html.light .focus\:border-\[\#FF3B30\]:focus { border-color: #DC2626 !important; }
-
-/* Animating ping dots */
-html.light .animate-ping { opacity: 0.6; }
-
-/* "No scrollbar" utility used on nav — keep as-is */
-
-/* The faded "72H" countdown watermark text */
-html.light .text-white\/\[0\.03\] { color: rgba(15, 23, 42, 0.04) !important; }
-
-/* Line-through (corrections diff) stays visible */
-
-/* Hover background on command palette items */
-html.light .hover\:bg-\[\#1A2230\]:hover { background-color: #F1F5F9 !important; }
-html.light .hover\:bg-\[\#161B22\]:hover { background-color: #F1F5F9 !important; }
-html.light .hover\:bg-\[\#1E2530\]:hover { background-color: #E8EDF3 !important; }
-
-/* hover text */
-html.light .hover\:text-white:hover { color: #0F172A !important; }
-
-/* Hover border states */
-html.light .hover\:border-slate-600:hover { border-color: #94A3B8 !important; }
-html.light .hover\:border-slate-400:hover { border-color: #94A3B8 !important; }
-html.light .hover\:border-slate-500:hover { border-color: #94A3B8 !important; }
-
-/* group-hover text */
-html.light .group-hover\:text-white { color: #0F172A !important; }
-html.light .group:hover .group-hover\:text-\[\#FF3B30\] { color: #DC2626 !important; }
-
-/* Active button backgrounds  */
-html.light .hover\:bg-\[\#E02D23\]:hover { background-color: #B91C1C !important; }
-
-/* Navbar hover on brand name */
-html.light .group-hover\:text-\[\#FF3B30\] { color: #DC2626 !important; }

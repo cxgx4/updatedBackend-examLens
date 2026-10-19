@@ -8,70 +8,83 @@ export default {
   theme: {
     extend: {
       colors: {
-        canvas: {
-          DEFAULT: '#07090D',
-          darker: '#040508',
-          subtle: '#0B0F15',
+        bg: {
+          DEFAULT: 'var(--bg)',
+          cream: 'var(--bg-cream)',
+          warm: 'var(--bg-warm)',
         },
-        panel: {
-          DEFAULT: '#0D1117',
-          elevated: '#121720',
-          border: '#1F2937',
-          hairline: '#18202C',
+        peach: 'var(--peach)',
+        'grey-card': 'var(--grey-card)',
+        border: {
+          DEFAULT: 'var(--border)',
         },
-        brand: {
-          red: '#FF3B30',
-          redGlow: 'rgba(255, 59, 48, 0.25)',
-          redDark: '#C7241A',
+        ink: {
+          DEFAULT: 'var(--ink)',
+          soft: 'var(--ink-soft)',
+          faint: 'var(--ink-faint)',
+        },
+        primary: {
+          DEFAULT: 'var(--primary)',
+          hover: 'var(--primary-hover)',
+          tint: 'var(--primary-tint)',
+          deep: 'var(--primary-deep)',
+          text: 'var(--primary-text)',
+        },
+        'on-primary': 'var(--on-primary)',
+        accent: {
+          DEFAULT: 'var(--accent)',
+          tint: 'var(--accent-tint)',
+          soft: 'var(--accent-soft)',
+        },
+        status: {
+          success: 'var(--status-success)',
+          warning: 'var(--status-warning)',
+          danger: 'var(--status-danger)',
+          'success-bg': 'var(--status-success-bg)',
+          'warning-bg': 'var(--status-warning-bg)',
+          'danger-bg': 'var(--status-danger-bg)',
         },
         topic: {
-          amber: '#F59E0B',
-          cyan: '#06B6D4',
-          violet: '#8B5CF6',
-          lime: '#A3E635',
-          rose: '#F43F5E',
-          blue: '#3B82F6',
-        }
+          orange: 'var(--topic-orange)',
+          purple: 'var(--topic-purple)',
+          teal: 'var(--topic-teal)',
+          rose: 'var(--topic-rose)',
+          olive: 'var(--topic-olive)',
+          sky: 'var(--topic-sky)',
+        },
+        // Compatibility aliases for components during migration
+        canvas: {
+          DEFAULT: 'var(--bg)',
+          darker: 'var(--bg-warm)',
+          subtle: 'var(--bg-cream)',
+        },
+        panel: {
+          DEFAULT: 'var(--bg)',
+          elevated: 'var(--bg-cream)',
+          border: 'var(--border)',
+          hairline: 'var(--border)',
+        },
+        brand: {
+          red: 'var(--primary)',
+          redGlow: 'var(--peach)',
+          redDark: 'var(--primary-deep)',
+        },
       },
-      fontFamily: {
-        display: ['"Bebas Neue"', 'Impact', 'sans-serif'],
-        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-        mono: ['"JetBrains Mono"', 'SFMono-Regular', 'Menlo', 'monospace'],
-      },
-      letterSpacing: {
-        ultra: '0.18em',
-        mega: '0.25em',
+      borderRadius: {
+        'card': '24px',
+        'card-lg': '32px',
+        'input': '16px',
+        'pill': '9999px',
       },
       boxShadow: {
-        'glow-red': '0 0 35px -5px rgba(255, 59, 48, 0.35)',
-        'glow-red-lg': '0 0 60px -10px rgba(255, 59, 48, 0.45)',
-        'panel': '0 4px 20px -2px rgba(0, 0, 0, 0.7)',
-        'laser': '0 0 10px rgba(255, 59, 48, 0.8), 0 0 20px rgba(255, 59, 48, 0.4)',
+        'warm': 'var(--shadow-warm)',
+        'warm-lg': 'var(--shadow-warm-lg)',
       },
-      keyframes: {
-        marquee: {
-          '0%': { transform: 'translateX(0%)' },
-          '100%': { transform: 'translateX(-50%)' },
-        },
-        scanline: {
-          '0%': { transform: 'translateY(-100%)' },
-          '100%': { transform: 'translateY(1000%)' },
-        },
-        pulseSubtle: {
-          '0%, 100%': { opacity: 1 },
-          '50%': { opacity: 0.5 },
-        },
-        radar: {
-          '0%': { transform: 'rotate(0deg)' },
-          '100%': { transform: 'rotate(360deg)' },
-        }
+      fontFamily: {
+        sans: ['"Pangea Afrikan"', 'Figtree', 'system-ui', '-apple-system', '"Segoe UI"', 'sans-serif'],
+        display: ['"Pangea Afrikan"', 'Figtree', 'system-ui', '-apple-system', '"Segoe UI"', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
-      animation: {
-        marquee: 'marquee 28s linear infinite',
-        scanline: 'scanline 8s linear infinite',
-        'pulse-subtle': 'pulseSubtle 2.5s ease-in-out infinite',
-        radar: 'radar 10s linear infinite',
-      }
     },
   },
   plugins: [],
