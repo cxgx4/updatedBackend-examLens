@@ -1,25 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  Calendar, CheckCircle2, Circle, AlertTriangle, 
-  Clock, Zap, Sparkles, TrendingUp, RefreshCw, Check 
+  Calendar, 
+  CheckCircle2, 
+  Circle, 
+  AlertTriangle, 
+  Clock, 
+  Sparkles, 
+  Flame, 
+  RefreshCw, 
+  Check, 
+  ArrowRight,
+  BookOpen
 } from 'lucide-react';
 import { api } from '../services/api';
 import { StudyTask } from '../types';
-import { MOCK_STUDY_TASKS } from '../mocks';
 
 export const PlannerPage: React.FC = () => {
   const [daysLeft, setDaysLeft] = useState<number>(3);
   const [hoursPerDay, setHoursPerDay] = useState<number>(4.0);
   const [tasks, setTasks] = useState<StudyTask[]>([]);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
-  const [streakDays, setStreakDays] = useState<number>(4);
+  const [streakDays] = useState<number>(4);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const fetchTasks = async () => {
       try {
         const t = await api.generatePlan(daysLeft, hoursPerDay);
-        setTasks(t);
+        setTasks(t || []);
         setErrorMsg(null);
       } catch (e: any) {
         setErrorMsg(e.message || 'Failed to generate plan');
@@ -29,15 +37,21 @@ export const PlannerPage: React.FC = () => {
   }, []);
 
   const handleToggleTask = async (taskId: string) => {
-    await api.toggleTask(taskId);
-    setTasks(tasks.map(t => t.id === taskId ? { ...t, completed: !t.completed } : t));
+    try {
+      await api.toggleTask(taskId);
+      setTasks((prev) =>
+        prev.map((t) => (t.id === taskId ? { ...t, completed: !t.completed } : t))
+      );
+    } catch (e) {
+      console.warn(e);
+    }
   };
 
   const handleBuildPlan = async () => {
     setIsGenerating(true);
     try {
       const generated = await api.generatePlan(daysLeft, hoursPerDay);
-      setTasks(generated);
+      setTasks(generated || []);
       setErrorMsg(null);
     } catch (e: any) {
       setErrorMsg(e.message || 'Failed to generate plan');
@@ -48,55 +62,49 @@ export const PlannerPage: React.FC = () => {
 
   // Metrics
   const totalTasks = tasks.length;
-  const completedTasks = tasks.filter(t => t.completed).length;
+  const completedTasks = tasks.filter((t) => t.completed).length;
   const completionPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-  const totalExpectedMarks = tasks.reduce((acc, t) => acc + (t.completed ? t.expected_marks : 0), 0);
+  const totalExpectedMarks = tasks.reduce(
+    (acc, t) => acc + (t.completed ? t.expected_marks : 0),
+    0
+  );
   const maxPossibleMarks = tasks.reduce((acc, t) => acc + t.expected_marks, 0);
 
   // Group tasks by Day
   const dayGroups: Record<number, StudyTask[]> = {};
-  tasks.forEach(task => {
+  tasks.forEach((task) => {
     if (!dayGroups[task.day]) dayGroups[task.day] = [];
     dayGroups[task.day].push(task);
   });
 
   return (
-    <div className="space-y-8 pb-16">
+    <div className="space-y-8 pb-12">
       
-      {/* ── HEADER ────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#1F2937] pb-4">
-        <div>
-          <div className="flex items-center gap-2 text-[11px] font-mono text-slate-400 mb-1">
-            <span>EXAMLENS</span>
-            <span>/</span>
-            <span className="text-[#FF3B30]">ANALYTICS ENGINE</span>
-            <span>/</span>
-            <span>DAY-WISE REVISION PLANNER</span>
+      {/* ── PLANNER CONFIGURATION CARD ───────────────────────────────────────── */}
+      <section className="bg-bg rounded-card-lg border border-border p-6 sm:p-8 shadow-xs space-y-6">
+        
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-border/80">
+          <div>
+            <h2 className="text-xl font-bold text-ink">Set your revision pace</h2>
+            <p className="text-xs text-ink-soft mt-0.5">
+              Adjust your schedule and we’ll balance high-yield topics across your study days.
+            </p>
           </div>
-          <h1 className="font-display text-3xl sm:text-4xl text-white tracking-wide uppercase">
-            PRIORITIZED STUDY PLAN & TARGET REVISION
-          </h1>
-        </div>
 
-        <div className="flex items-center gap-3">
-          <div className="px-3 py-1 bg-[#121720] border border-[#1F2937] font-mono text-xs text-amber-400 flex items-center gap-2">
-            <Zap size={13} className="text-amber-400 fill-amber-400" />
-            <span>{streakDays} DAY REVISION STREAK</span>
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-peach/70 text-primary-text rounded-pill text-xs font-bold self-start sm:self-auto">
+            <Flame size={14} className="text-primary" />
+            <span>{streakDays}-day study streak</span>
           </div>
         </div>
-      </div>
 
-      {/* ── INPUT CONTROL STRIP (DAYS + HOURS + GENERATOR) ──────────────────── */}
-      <section className="bg-[#0D1117] border border-[#1F2937] p-6 tactical-panel">
+        {/* Short Controls Form */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
           
-          {/* Days Left Stepper */}
+          {/* Days Left */}
           <div className="md:col-span-4 space-y-2">
-            <div className="flex justify-between items-baseline">
-              <label className="text-xs font-mono text-slate-300 uppercase tracking-wider">
-                DAYS REMAINING UNTIL EXAM
-              </label>
-              <span className="font-display text-2xl text-white font-bold">{daysLeft} DAYS</span>
+            <div className="flex justify-between items-baseline text-xs">
+              <span className="font-semibold text-ink">Days until exam</span>
+              <span className="font-bold text-base text-primary-text">{daysLeft} days</span>
             </div>
             <input
               type="range"
@@ -104,22 +112,20 @@ export const PlannerPage: React.FC = () => {
               max="14"
               value={daysLeft}
               onChange={(e) => setDaysLeft(Number(e.target.value))}
-              className="w-full accent-[#FF3B30] bg-[#1F2937] cursor-pointer"
+              className="w-full accent-primary bg-border rounded-pill cursor-pointer"
             />
-            <div className="flex justify-between text-[10px] font-mono text-slate-500">
-              <span>24H CRUNCH</span>
-              <span>72H (STANDARD)</span>
-              <span>14 DAYS</span>
+            <div className="flex justify-between text-[11px] text-ink-faint">
+              <span>1 day</span>
+              <span>3 days (recommended)</span>
+              <span>14 days</span>
             </div>
           </div>
 
-          {/* Hours Per Day Stepper */}
+          {/* Hours Per Day */}
           <div className="md:col-span-4 space-y-2">
-            <div className="flex justify-between items-baseline">
-              <label className="text-xs font-mono text-slate-300 uppercase tracking-wider">
-                COMMITTED REVISION HOURS / DAY
-              </label>
-              <span className="font-display text-2xl text-[#FF3B30] font-bold">{hoursPerDay.toFixed(1)} HRS</span>
+            <div className="flex justify-between items-baseline text-xs">
+              <span className="font-semibold text-ink">Hours per day</span>
+              <span className="font-bold text-base text-primary-text">{hoursPerDay.toFixed(1)} hrs</span>
             </div>
             <input
               type="range"
@@ -128,167 +134,190 @@ export const PlannerPage: React.FC = () => {
               step="0.5"
               value={hoursPerDay}
               onChange={(e) => setHoursPerDay(Number(e.target.value))}
-              className="w-full accent-[#FF3B30] bg-[#1F2937] cursor-pointer"
+              className="w-full accent-primary bg-border rounded-pill cursor-pointer"
             />
-            <div className="flex justify-between text-[10px] font-mono text-slate-500">
-              <span>1.0 HR (LIGHT)</span>
-              <span>4.0 HRS (RECOMMENDED)</span>
-              <span>8.0 HRS (INTENSIVE)</span>
+            <div className="flex justify-between text-[11px] text-ink-faint">
+              <span>1.0h</span>
+              <span>4.0h standard</span>
+              <span>8.0h sprint</span>
             </div>
           </div>
 
-          {/* Generate Button */}
+          {/* Re-generate Button */}
           <div className="md:col-span-4 flex flex-col items-end gap-2">
             <button
               onClick={handleBuildPlan}
               disabled={isGenerating}
-              className="w-full sm:w-auto px-6 py-3.5 bg-[#FF3B30] hover:bg-[#E02D23] disabled:opacity-50 text-white font-mono text-xs font-bold tracking-wider transition-all shadow-laser flex items-center justify-center gap-2"
+              className="w-full sm:w-auto px-6 py-3 min-h-[48px] bg-primary hover:bg-primary-hover disabled:opacity-50 text-on-primary font-bold text-xs rounded-pill shadow-warm transition-transform active:scale-95 flex items-center justify-center gap-2"
             >
-              <Sparkles size={14} className={isGenerating ? 'animate-spin' : ''} />
-              <span>{isGenerating ? 'OPTIMIZING SCHEDULE...' : 'RE-BUILD STUDY PLAN'}</span>
+              <Sparkles size={15} className={isGenerating ? 'animate-spin' : ''} />
+              <span>{isGenerating ? 'Optimizing plan...' : 'Update study plan'}</span>
             </button>
             {errorMsg && (
-              <span className="text-[10px] text-amber-400 font-mono font-bold animate-pulse">{errorMsg}</span>
+              <span className="text-xs text-status-danger font-medium">{errorMsg}</span>
             )}
           </div>
 
         </div>
+
       </section>
 
-      {/* ── METRICS TILES ───────────────────────────────────────────────────── */}
+      {/* ── METRIC STAT TILES ───────────────────────────────────────────────── */}
       <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         
-        {/* Progress Ring Card */}
-        <div className="bg-[#0D1117] border border-[#1F2937] p-4 flex items-center justify-between tactical-panel">
-          <div>
-            <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider block">
-              SCHEDULE COMPLETION
+        {/* Progress Card */}
+        <div className="bg-bg-cream rounded-card p-5 border border-border/80">
+          <span className="text-xs font-semibold text-ink-soft block">
+            Completed tasks
+          </span>
+          <div className="flex items-baseline gap-2 mt-1">
+            <span className="text-3xl font-extrabold text-primary">
+              {completedTasks}
             </span>
-            <span className="font-display text-3xl text-white">
-              {completedTasks} / {totalTasks} TASKS
-            </span>
+            <span className="text-xs text-ink-soft font-medium">/ {totalTasks} tasks</span>
           </div>
-          <div className="relative w-12 h-12 flex items-center justify-center">
-            <span className="font-mono text-xs font-bold text-emerald-400">
-              {completionPercent}%
-            </span>
+          <div className="mt-3 w-full bg-border/60 rounded-pill h-2 overflow-hidden">
+            <div
+              className="h-full bg-primary rounded-pill transition-all duration-300"
+              style={{ width: `${completionPercent}%` }}
+            />
           </div>
         </div>
 
-        {/* Expected Marks Harvested */}
-        <div className="bg-[#0D1117] border border-[#1F2937] p-4 tactical-panel">
-          <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider block">
-            EXPECTED EXAM MARKS HARVESTED
+        {/* Expected Marks */}
+        <div className="bg-bg-cream rounded-card p-5 border border-border/80">
+          <span className="text-xs font-semibold text-ink-soft block">
+            Target marks secured
           </span>
           <div className="flex items-baseline gap-2 mt-1">
-            <span className="font-display text-3xl text-[#FF3B30]">{totalExpectedMarks}</span>
-            <span className="text-xs font-mono text-slate-500">/ {maxPossibleMarks} TARGET MARKS</span>
+            <span className="text-3xl font-extrabold text-primary">
+              {totalExpectedMarks}
+            </span>
+            <span className="text-xs text-ink-soft font-medium">/ {maxPossibleMarks} exam marks</span>
           </div>
+          <p className="text-xs text-ink-soft mt-2">
+            Based on historical past question weighting
+          </p>
         </div>
 
-        {/* Total Revision Hours */}
-        <div className="bg-[#0D1117] border border-[#1F2937] p-4 tactical-panel">
-          <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider block">
-            TOTAL REVISION BUDGET
+        {/* Revision Budget */}
+        <div className="bg-bg-cream rounded-card p-5 border border-border/80">
+          <span className="text-xs font-semibold text-ink-soft block">
+            Total study hours
           </span>
           <div className="flex items-baseline gap-2 mt-1">
-            <span className="font-display text-3xl text-cyan-400">{(daysLeft * hoursPerDay).toFixed(1)}</span>
-            <span className="text-xs font-mono text-slate-500">AVAILABLE HOURS</span>
+            <span className="text-3xl font-extrabold text-primary">
+              {(daysLeft * hoursPerDay).toFixed(1)}
+            </span>
+            <span className="text-xs text-ink-soft font-medium">available hours</span>
           </div>
+          <p className="text-xs text-ink-soft mt-2">
+            {hoursPerDay}h per day across {daysLeft} days
+          </p>
         </div>
 
       </section>
 
-      {/* ── DAY-BY-DAY TASK SCHEDULE ────────────────────────────────────────── */}
+      {/* ── DAY-BY-DAY TASK SCHEDULE (GREY CARDS WITH CHECKBOXES) ─────────── */}
       <div className="space-y-6">
         {Object.entries(dayGroups).map(([dayNum, dayTasks]) => (
-          <div key={dayNum} className="bg-[#0D1117] border border-[#1F2937] p-5 tactical-panel">
+          <div key={dayNum} className="space-y-3">
             
             {/* Day Header */}
-            <div className="flex items-center justify-between mb-4 border-b border-[#1F2937] pb-2">
-              <div className="flex items-center gap-3">
-                <span className="px-2.5 py-0.5 bg-[#FF3B30] text-black font-mono text-xs font-bold shadow-sm">
-                  DAY {dayNum}
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-2.5">
+                <span className="px-3 py-1 bg-primary text-on-primary font-bold text-xs rounded-pill shadow-xs">
+                  Day {dayNum}
                 </span>
-                <span className="font-mono text-xs text-slate-400 uppercase tracking-wider">
-                  {dayNum === '1' ? 'HIGH PRIORITY CRITICAL TOPICS' : dayNum === '2' ? 'ALGEBRA & TRANSACTIONS' : 'TIMED PRACTICE & SCHEMA'}
+                <span className="text-sm font-bold text-ink">
+                  {dayNum === '1'
+                    ? 'High-Yield Core Topics'
+                    : dayNum === '2'
+                    ? 'Transactions & Relational Algebra'
+                    : 'Mock Practice & Formula Review'}
                 </span>
               </div>
-              <span className="text-[11px] font-mono text-slate-500">
-                {dayTasks.reduce((acc, t) => acc + t.duration_minutes, 0)} MINS TOTAL
+              <span className="text-xs text-ink-soft">
+                {dayTasks.reduce((acc, t) => acc + t.duration_minutes, 0)} mins
               </span>
             </div>
 
-            {/* Tasks in this day */}
+            {/* Task list for this day */}
             <div className="space-y-2.5">
               {dayTasks.map((task) => {
                 const isNow = task.status === 'NOW';
-                const isNext = task.status === 'NEXT';
 
                 return (
                   <div
                     key={task.id}
                     onClick={() => handleToggleTask(task.id)}
-                    className={`p-3.5 border transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                    className={`p-4 rounded-card border transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
                       task.completed
-                        ? 'border-emerald-900/60 bg-emerald-950/20 opacity-60'
+                        ? 'bg-grey-card/50 border-border/50 opacity-60'
                         : isNow
-                        ? 'border-[#FF3B30]/60 bg-[#FF3B30]/5 hover:border-[#FF3B30]'
-                        : 'border-[#1F2937] bg-[#07090D] hover:border-slate-600'
+                        ? 'bg-peach/30 border-primary shadow-xs'
+                        : 'bg-grey-card border-border hover:border-primary/40'
                     }`}
                   >
                     <div className="flex items-start gap-3">
-                      {/* Checkbox */}
-                      <button className="mt-0.5 shrink-0 text-slate-400 hover:text-white">
+                      {/* Checkbox button */}
+                      <button
+                        type="button"
+                        className="mt-0.5 shrink-0 text-ink-soft hover:text-primary transition-colors"
+                        aria-label={task.completed ? 'Mark incomplete' : 'Mark complete'}
+                      >
                         {task.completed ? (
-                          <CheckCircle2 size={16} className="text-emerald-400" />
+                          <CheckCircle2 size={20} className="text-status-success" />
                         ) : (
-                          <Circle size={16} className={isNow ? 'text-[#FF3B30]' : 'text-slate-600'} />
+                          <Circle size={20} className={isNow ? 'text-primary' : 'text-ink-faint'} />
                         )}
                       </button>
 
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`text-xs font-mono font-medium ${
-                            task.completed ? 'line-through text-slate-400' : 'text-white'
-                          }`}>
+                          <span
+                            className={`text-sm font-semibold ${
+                              task.completed
+                                ? 'line-through text-ink-soft'
+                                : 'text-ink'
+                            }`}
+                          >
                             {task.title}
                           </span>
 
-                          {/* Notes Missing Flag */}
                           {task.notes_missing && (
-                            <span className="px-1.5 py-0.2 bg-amber-950 text-amber-400 border border-amber-800 text-[9px] font-mono font-bold flex items-center gap-1">
-                              <AlertTriangle size={10} />
-                              NOTES MISSING
+                            <span className="px-2 py-0.5 bg-peach text-primary-text font-bold text-[10px] rounded-pill flex items-center gap-1">
+                              <AlertTriangle size={11} />
+                              <span>Needs notes</span>
                             </span>
                           )}
                         </div>
 
-                        <div className="flex items-center gap-3 text-[10px] font-mono text-slate-500 mt-1">
+                        <div className="flex items-center gap-3 text-xs text-ink-soft mt-1">
                           <span className="flex items-center gap-1">
-                            <Clock size={10} />
-                            {task.duration_minutes} MINS
+                            <Clock size={12} />
+                            <span>{task.duration_minutes} mins</span>
                           </span>
-                          <span>•</span>
-                          <span className="text-emerald-400 font-semibold">
-                            +{task.expected_marks} EXPECTED MARKS
+                          <span className="text-ink-faint">•</span>
+                          <span className="text-primary-text font-bold">
+                            +{task.expected_marks} marks
                           </span>
                         </div>
                       </div>
                     </div>
 
-                    {/* Status Pill */}
-                    <div className="shrink-0 flex items-center gap-2">
-                      <span className={`px-2 py-0.5 text-[9px] font-mono font-bold tracking-wider uppercase border ${
-                        task.completed 
-                          ? 'border-emerald-800 text-emerald-400 bg-emerald-950/40' 
-                          : isNow 
-                          ? 'border-[#FF3B30] text-[#FF3B30] bg-[#FF3B30]/20' 
-                          : isNext
-                          ? 'border-cyan-800 text-cyan-400 bg-cyan-950/40'
-                          : 'border-slate-800 text-slate-500 bg-slate-900'
-                      }`}>
-                        {task.completed ? 'DONE' : task.status}
+                    {/* Status badge */}
+                    <div className="shrink-0 flex items-center self-end sm:self-auto">
+                      <span
+                        className={`px-3 py-1 rounded-pill text-[11px] font-bold ${
+                          task.completed
+                            ? 'bg-status-success-bg text-status-success'
+                            : isNow
+                            ? 'bg-primary text-on-primary'
+                            : 'bg-border/60 text-ink-soft'
+                        }`}
+                      >
+                        {task.completed ? 'Done' : isNow ? 'Current' : 'Up next'}
                       </span>
                     </div>
                   </div>

@@ -1,22 +1,26 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { 
-  Share2, RotateCcw, AlertTriangle, FileText, 
-  HelpCircle, CheckCircle2, X, ExternalLink, ZoomIn, ZoomOut 
+  RotateCcw, 
+  AlertTriangle, 
+  FileText, 
+  X, 
+  ExternalLink, 
+  Network, 
+  List, 
+  HelpCircle,
+  FileQuestion,
+  ChevronRight
 } from 'lucide-react';
 import { GraphNode, GraphLink, Topic, Question, Note } from '../types';
-import { 
-  MOCK_GRAPH_NODES, MOCK_GRAPH_LINKS, MOCK_TOPICS, 
-  MOCK_QUESTIONS, MOCK_NOTES 
-} from '../mocks';
 import { api } from '../services/api';
 
 export const GraphPage: React.FC = () => {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  
+
+  const [viewMode, setViewMode] = useState<'graph' | 'list'>('graph');
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
-  const [hoveredNodeId, setHoveredNodeId] = useState<number | null>(null);
 
   const [nodesData, setNodesData] = useState<GraphNode[]>([]);
   const [linksData, setLinksData] = useState<GraphLink[]>([]);
@@ -26,59 +30,86 @@ export const GraphPage: React.FC = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const graph = await api.getGraph();
-      setNodesData(graph.nodes);
-      setLinksData(graph.links);
-      setTopics(await api.getTopics());
-      setQuestions(await api.getQuestions());
-      setNotes(await api.getNotes());
+      try {
+        const graph = await api.getGraph();
+        setNodesData(graph.nodes || []);
+        setLinksData(graph.links || []);
+        const [t, q, n] = await Promise.all([
+          api.getTopics(),
+          api.getQuestions(),
+          api.getNotes(),
+        ]);
+        setTopics(t || []);
+        setQuestions(q || []);
+        setNotes(n || []);
+      } catch (e) {
+        console.warn('Error fetching graph data:', e);
+      }
     };
     fetchData();
   }, []);
 
+  // Responsive switch: default to list view on small screens (< 640px)
   useEffect(() => {
-    if (!svgRef.current || !containerRef.current) return;
+    if (typeof window !== 'undefined' && window.innerWidth < 640) {
+      setViewMode('list');
+    }
+  }, []);
 
-    const width = containerRef.current.clientWidth;
-    const height = 540;
+  useEffect(() => {
+    if (viewMode !== 'graph' || !svgRef.current || !containerRef.current || !nodesData.length) return;
+
+    const width = containerRef.current.clientWidth || 800;
+    const height = 520;
 
     const svg = d3.select(svgRef.current)
       .attr('viewBox', [0, 0, width, height]);
 
     svg.selectAll('*').remove();
 
-    // Zoom behavior
     const g = svg.append('g');
 
     const zoom = d3.zoom<SVGSVGElement, unknown>()
-      .scaleExtent([0.5, 3])
+      .scaleExtent([0.6, 2.5])
       .on('zoom', (event) => {
         g.attr('transform', event.transform);
       });
 
     svg.call(zoom);
 
-    // Simulation
-    const simulation = d3.forceSimulation<GraphNode>(nodesData)
-      .force('link', d3.forceLink<GraphNode, GraphLink>(linksData).id((d: any) => d.id).distance(140))
-      .force('charge', d3.forceManyBody().strength(-400))
+    // Deep copy nodes and links for simulation
+    const simNodes: GraphNode[] = nodesData.map((d) => ({ ...d }));
+    const simLinks: GraphLink[] = linksData.map((d) => ({ ...d }));
+
+    const simulation = d3.forceSimulation<GraphNode>(simNodes)
+      .force(
+        'link',
+        d3.forceLink<GraphNode, GraphLink>(simLinks)
+          .id((d: any) => d.id)
+          .distance(150)
+      )
+      .force('charge', d3.forceManyBody().strength(-350))
       .force('center', d3.forceCenter(width / 2, height / 2))
-      .force('collision', d3.forceCollide().radius((d: any) => Math.sqrt(d.weight) * 4 + 15));
+      .force(
+        'collision',
+        d3.forceCollide().radius((d: any) => Math.sqrt(d.weight || 10) * 4 + 20)
+      );
 
-    // Links
+    // Connecting Links
     const link = g.append('g')
-      .attr('stroke', '#30363D')
-      .attr('stroke-opacity', 0.6)
+      .attr('stroke', '#EFE6DC')
+      .attr('stroke-opacity', 0.8)
       .selectAll('line')
-      .data(linksData)
+      .data(simLinks)
       .join('line')
-      .attr('stroke-width', (d) => d.strength * 3);
+      .attr('stroke-width', (d) => Math.max(1.5, (d.strength || 1) * 2.5));
 
-    // Nodes container
+    // Nodes group
     const node = g.append('g')
       .selectAll<SVGGElement, GraphNode>('g')
-      .data(nodesData)
+      .data(simNodes)
       .join('g')
+      .style('cursor', 'pointer')
       .call(
         d3.drag<SVGGElement, GraphNode>()
           .on('start', (event, d) => {
@@ -98,52 +129,41 @@ export const GraphPage: React.FC = () => {
       )
       .on('click', (_, d) => {
         setSelectedNode(d);
-      })
-      .on('mouseenter', (_, d) => {
-        setHoveredNodeId(d.id);
-      })
-      .on('mouseleave', () => {
-        setHoveredNodeId(null);
       });
 
-    // Outer glow ring
+    // Outer circle
     node.append('circle')
-      .attr('r', (d) => Math.sqrt(d.weight) * 3 + 12)
-      .attr('fill', 'transparent')
-      .attr('stroke', (d) => d.isGap ? '#FF3B30' : d.color)
-      .attr('stroke-width', (d) => d.isGap ? 2.5 : 1.5)
-      .attr('stroke-dasharray', (d) => d.isGap ? '4 3' : 'none')
-      .attr('opacity', 0.85);
+      .attr('r', (d) => Math.sqrt(d.weight || 10) * 3 + 14)
+      .attr('fill', (d) => (d.isGap ? '#FFE9D9' : '#FAF5EE'))
+      .attr('stroke', (d) => (d.isGap ? '#FF8233' : d.color || '#FF8233'))
+      .attr('stroke-width', (d) => (d.isGap ? 2.5 : 2))
+      .attr('stroke-dasharray', (d) => (d.isGap ? '5 3' : 'none'));
 
-    // Inner filled circle
+    // Inner badge
     node.append('circle')
-      .attr('r', (d) => Math.sqrt(d.weight) * 3 + 6)
-      .attr('fill', (d) => d.color)
-      .attr('fill-opacity', 0.25)
-      .attr('stroke', (d) => d.color)
-      .attr('stroke-width', 1);
+      .attr('r', (d) => Math.sqrt(d.weight || 10) * 2 + 6)
+      .attr('fill', (d) => d.color || '#FF8233')
+      .attr('fill-opacity', 0.2);
 
-    // Text labels
-    node.append('text')
-      .text((d) => d.name)
-      .attr('x', 0)
-      .attr('y', (d) => Math.sqrt(d.weight) * 3 + 28)
-      .attr('text-anchor', 'middle')
-      .attr('fill', '#FFFFFF')
-      .attr('font-size', '11px')
-      .attr('font-family', 'JetBrains Mono, monospace')
-      .attr('font-weight', '600');
-
-    // Weight subtitle
+    // Marks label
     node.append('text')
       .text((d) => `${d.weight}M`)
-      .attr('x', 0)
-      .attr('y', 4)
       .attr('text-anchor', 'middle')
-      .attr('fill', '#FFFFFF')
-      .attr('font-size', '10px')
-      .attr('font-family', 'JetBrains Mono, monospace')
+      .attr('y', 4)
+      .attr('fill', '#282828')
+      .attr('font-size', '11px')
+      .attr('font-family', 'Figtree, sans-serif')
       .attr('font-weight', 'bold');
+
+    // Title label underneath
+    node.append('text')
+      .text((d) => d.name)
+      .attr('text-anchor', 'middle')
+      .attr('y', (d) => Math.sqrt(d.weight || 10) * 3 + 30)
+      .attr('fill', '#282828')
+      .attr('font-size', '12px')
+      .attr('font-family', 'Figtree, sans-serif')
+      .attr('font-weight', '600');
 
     simulation.on('tick', () => {
       link
@@ -158,164 +178,209 @@ export const GraphPage: React.FC = () => {
     return () => {
       simulation.stop();
     };
-  }, [nodesData, linksData]);
+  }, [viewMode, nodesData, linksData]);
 
   const handleReset = () => {
     setSelectedNode(null);
-    setHoveredNodeId(null);
   };
 
-  // Connected questions & notes for selected node drawer
-  const relatedQuestions = selectedNode 
-    ? questions.filter(q => q.topic_id === selectedNode.id)
+  const relatedQuestions = selectedNode
+    ? questions.filter((q) => q.topic_id === selectedNode.id)
     : [];
 
   const relatedNotes = selectedNode
-    ? notes.filter(n => n.topic_ids.includes(selectedNode.id))
+    ? notes.filter((n) => n.topic_ids.includes(selectedNode.id))
     : [];
 
   const topicMeta = selectedNode
-    ? topics.find(t => t.id === selectedNode.id)
+    ? topics.find((t) => t.id === selectedNode.id)
     : null;
 
   return (
-    <div className="space-y-6 pb-16 relative">
+    <div className="space-y-6 pb-12 relative">
       
-      {/* ── HEADER ────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#1F2937] pb-4">
+      {/* ── TOP HEADER & CONTROLS ─────────────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/80 pb-6">
         <div>
-          <div className="flex items-center gap-2 text-[11px] font-mono text-slate-400 mb-1">
-            <span>EXAMLENS</span>
-            <span>/</span>
-            <span className="text-[#FF3B30]">KNOWLEDGE TOPOLOGY</span>
-            <span>/</span>
-            <span>SHARED TOPIC GRAPH</span>
-          </div>
-          <h1 className="font-display text-3xl sm:text-4xl text-white tracking-wide uppercase">
-            FORCE-DIRECTED SYLLABUS KNOWLEDGE GRAPH
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-ink">
+            Topic Map
           </h1>
+          <p className="text-sm text-ink-soft mt-1">
+            Connected syllabus topics, exam mark weightings, and prerequisite paths.
+          </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleReset}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0D1117] hover:bg-[#161B22] border border-[#1F2937] text-slate-300 font-mono text-xs tracking-wider transition-all"
-          >
-            <RotateCcw size={13} />
-            <span>RESET LAYOUT</span>
-          </button>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          {/* View toggle (Map vs List) */}
+          <div className="inline-flex p-1 bg-grey-card rounded-pill border border-border">
+            <button
+              onClick={() => setViewMode('graph')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-pill text-xs font-semibold transition-colors ${
+                viewMode === 'graph'
+                  ? 'bg-bg text-ink shadow-xs'
+                  : 'text-ink-soft hover:text-ink'
+              }`}
+            >
+              <Network size={14} className="text-primary" />
+              <span>Map view</span>
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-pill text-xs font-semibold transition-colors ${
+                viewMode === 'list'
+                  ? 'bg-bg text-ink shadow-xs'
+                  : 'text-ink-soft hover:text-ink'
+              }`}
+            >
+              <List size={14} className="text-primary" />
+              <span>List view</span>
+            </button>
+          </div>
+
+          {viewMode === 'graph' && (
+            <button
+              onClick={handleReset}
+              className="px-3.5 py-1.5 bg-grey-card hover:bg-border/60 text-ink text-xs font-semibold rounded-pill border border-border flex items-center gap-1.5 transition-colors"
+            >
+              <RotateCcw size={13} />
+              <span>Reset view</span>
+            </button>
+          )}
         </div>
       </div>
 
-      {/* ── GRAPH CONTAINER & CANVAS ────────────────────────────────────────── */}
-      <div 
-        ref={containerRef} 
-        className="relative w-full h-[540px] bg-[#07090D] border border-[#1F2937] overflow-hidden select-none tactical-panel"
-      >
-        {/* Background Grid Pattern */}
-        <div className="absolute inset-0 bg-grid-dots opacity-30 pointer-events-none" />
+      {/* ── GRAPH / LIST VIEW AREA ────────────────────────────────────────── */}
+      {viewMode === 'graph' ? (
+        <div
+          ref={containerRef}
+          className="relative w-full h-[520px] bg-bg-cream/40 rounded-card-lg border border-border overflow-hidden select-none shadow-xs"
+        >
+          {/* Legend Overlay */}
+          <div className="absolute top-4 left-4 z-10 bg-bg/95 border border-border/80 p-3.5 rounded-2xl text-xs space-y-2 shadow-xs backdrop-blur-sm max-w-xs">
+            <span className="font-bold text-ink block text-[11px] uppercase tracking-wider">
+              Topic Legend
+            </span>
+            <div className="flex items-center gap-2 text-ink-soft">
+              <span className="w-3 h-3 rounded-full bg-peach border border-primary" />
+              <span>Bubble size = Exam mark weight</span>
+            </div>
+            <div className="flex items-center gap-2 text-ink-soft">
+              <span className="w-3 h-3 rounded-full border-2 border-dashed border-primary" />
+              <span className="text-primary-text font-medium">Dashed ring = Needs notes</span>
+            </div>
+            <div className="flex items-center gap-2 text-ink-soft">
+              <span className="w-5 h-0.5 bg-border" />
+              <span>Connecting line = Topic prerequisite</span>
+            </div>
+          </div>
 
-        {/* Legend Overlay */}
-        <div className="absolute top-4 left-4 z-10 bg-[#0D1117]/90 border border-[#1F2937] p-3 text-[11px] font-mono space-y-1.5 backdrop-blur-sm">
-          <div className="text-white font-bold mb-1 uppercase tracking-wider text-[10px]">
-            GRAPH TOPOLOGY LEGEND
+          <div className="absolute bottom-4 left-4 z-10 text-xs text-ink-soft bg-bg/90 px-3 py-1.5 rounded-pill border border-border shadow-xs">
+            Drag to pan • Scroll to zoom • Click bubble for details
           </div>
-          <div className="flex items-center gap-2 text-slate-300">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#FF3B30]"></span>
-            <span>Node Size = Historical Marks Weight</span>
-          </div>
-          <div className="flex items-center gap-2 text-slate-300">
-            <span className="w-2.5 h-2.5 rounded-full border border-dashed border-[#FF3B30]"></span>
-            <span className="text-[#FF3B30]">Dashed Red Ring = Coverage Gap (0 Notes)</span>
-          </div>
-          <div className="flex items-center gap-2 text-slate-400">
-            <span className="w-4 h-0.5 bg-slate-600"></span>
-            <span>Link = Curriculum Pre-requisite Dependency</span>
-          </div>
+
+          {/* D3 Canvas */}
+          <svg ref={svgRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
         </div>
-
-        {/* Controls Overlay */}
-        <div className="absolute bottom-4 left-4 z-10 text-[10px] font-mono text-slate-500 bg-black/60 px-2 py-1 border border-slate-900">
-          DRAG NODES • SCROLL TO ZOOM • CLICK NODE TO INSPECT DETAILS
-        </div>
-
-        {/* D3 SVG Canvas */}
-        <svg ref={svgRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
-
-        {/* ── RIGHT SLIDE-OUT INSPECTOR DRAWER ─────────────────────────────────── */}
-        {selectedNode && (
-          <div className="absolute top-0 right-0 bottom-0 w-full sm:w-96 bg-[#0D1117] border-l border-[#1F2937] shadow-2xl p-6 overflow-y-auto z-20 flex flex-col justify-between">
-            <div>
-              {/* Drawer Header */}
-              <div className="flex items-start justify-between pb-3 border-b border-[#1F2937] mb-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span 
-                      className="w-3 h-3 rounded-full" 
-                      style={{ backgroundColor: selectedNode.color }} 
-                    />
-                    <span className="text-[10px] font-mono text-slate-400 uppercase">
-                      {selectedNode.unit}
-                    </span>
-                  </div>
-                  <h3 className="font-display text-2xl text-white tracking-wide mt-1">
-                    {selectedNode.name}
-                  </h3>
+      ) : (
+        /* ── RESPONSIVE LIST VIEW (IDEAL FOR MOBILE) ───────────────────────── */
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {nodesData.map((node) => (
+            <div
+              key={node.id}
+              onClick={() => setSelectedNode(node)}
+              className="p-5 bg-bg rounded-card border border-border shadow-xs hover:border-primary/50 cursor-pointer transition-all flex items-center justify-between group"
+            >
+              <div className="flex items-center gap-3.5">
+                <div
+                  className="w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-sm text-ink"
+                  style={{ backgroundColor: `${node.color}25`, border: `2px solid ${node.color}` }}
+                >
+                  {node.weight}M
                 </div>
-                <button 
+                <div>
+                  <div className="font-bold text-ink text-base group-hover:text-primary transition-colors">
+                    {node.name}
+                  </div>
+                  <div className="text-xs text-ink-soft mt-0.5">
+                    {node.unit} • {node.isGap ? '⚠️ Missing lecture notes' : 'Notes & questions ready'}
+                  </div>
+                </div>
+              </div>
+
+              <ChevronRight size={18} className="text-ink-faint group-hover:translate-x-1 transition-transform" />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── TOPIC DETAILS DRAWER / BOTTOM SHEET ─────────────────────────────── */}
+      {selectedNode && (
+        <div className="fixed inset-0 sm:inset-auto sm:top-0 sm:right-0 sm:bottom-0 sm:w-[420px] z-50 bg-ink/30 sm:bg-transparent backdrop-blur-xs flex items-end sm:items-stretch">
+          <div className="w-full bg-bg rounded-t-[32px] sm:rounded-none sm:border-l border-border shadow-warm-lg p-6 sm:p-8 overflow-y-auto flex flex-col justify-between max-h-[85vh] sm:max-h-full">
+            
+            <div className="space-y-6">
+              {/* Header */}
+              <div className="flex items-start justify-between pb-4 border-b border-border/80">
+                <div>
+                  <span className="text-xs font-bold text-primary-text uppercase tracking-wider">
+                    {selectedNode.unit}
+                  </span>
+                  <h2 className="text-2xl font-bold text-ink mt-0.5">
+                    {selectedNode.name}
+                  </h2>
+                </div>
+                <button
                   onClick={() => setSelectedNode(null)}
-                  className="text-slate-400 hover:text-white"
+                  className="w-9 h-9 flex items-center justify-center rounded-pill bg-grey-card hover:bg-border/60 text-ink-soft transition-colors"
                 >
                   <X size={18} />
                 </button>
               </div>
 
-              {/* Status / Coverage Gap Alert */}
+              {/* Coverage Gap Warning */}
               {selectedNode.isGap && (
-                <div className="p-3 bg-amber-950/40 border border-amber-500/50 mb-4 flex items-start gap-2 text-xs font-mono text-amber-300">
-                  <AlertTriangle size={15} className="shrink-0 mt-0.5" />
+                <div className="p-4 bg-peach/40 border border-primary/30 rounded-2xl flex items-start gap-3 text-xs text-primary-text">
+                  <AlertTriangle size={18} className="shrink-0 text-primary mt-0.5" />
                   <div>
-                    <strong className="block text-amber-200">CRITICAL COVERAGE GAP</strong>
-                    Asked in {selectedNode.frequency} past papers, but no verified lecture notes found.
+                    <strong className="block font-bold">Coverage gap detected</strong>
+                    Tested in {selectedNode.frequency} past papers, but no notes uploaded yet.
                   </div>
                 </div>
               )}
 
-              {/* Metrics Grid */}
-              <div className="grid grid-cols-2 gap-2 mb-4 font-mono text-xs">
-                <div className="p-2.5 bg-[#07090D] border border-[#1F2937]">
-                  <span className="text-slate-500 text-[10px] block">TOTAL MARKS</span>
-                  <span className="text-white font-bold text-base">{selectedNode.weight}M</span>
+              {/* Metrics */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-4 bg-grey-card rounded-2xl border border-border/70">
+                  <span className="text-xs text-ink-soft block font-medium">Exam Marks Weight</span>
+                  <span className="text-2xl font-bold text-ink mt-1 block">{selectedNode.weight} marks</span>
                 </div>
-                <div className="p-2.5 bg-[#07090D] border border-[#1F2937]">
-                  <span className="text-slate-500 text-[10px] block">STUDY PRIORITY</span>
-                  <span className="text-[#FF3B30] font-bold text-base">
-                    {topicMeta?.priority_score.toFixed(2) || '8.00'} M/HR
+                <div className="p-4 bg-grey-card rounded-2xl border border-border/70">
+                  <span className="text-xs text-ink-soft block font-medium">Study Priority</span>
+                  <span className="text-2xl font-bold text-primary mt-1 block">
+                    {topicMeta?.priority_score ? `${topicMeta.priority_score.toFixed(1)} score` : 'High'}
                   </span>
                 </div>
               </div>
 
               {/* Linked Past Exam Questions */}
-              <div className="space-y-3 mb-4">
-                <div className="text-[11px] font-mono text-slate-400 uppercase tracking-wider flex items-center justify-between">
-                  <span>EXTRACTED PAST QUESTIONS ({relatedQuestions.length})</span>
-                </div>
+              <div className="space-y-3">
+                <span className="text-xs font-bold text-ink uppercase tracking-wider block">
+                  Past Exam Questions ({relatedQuestions.length})
+                </span>
                 {relatedQuestions.length === 0 ? (
-                  <div className="text-xs font-mono text-slate-500 italic p-2 bg-[#07090D]">
-                    No direct question links.
-                  </div>
+                  <p className="text-xs text-ink-soft italic">No direct questions linked.</p>
                 ) : (
-                  relatedQuestions.map(q => (
-                    <div key={q.id} className="p-2.5 bg-[#07090D] border border-[#1F2937] text-xs font-mono space-y-1">
-                      <div className="flex items-center justify-between text-[10px]">
-                        <span className="text-[#FF3B30] font-bold">{q.year} END SEM ({q.marks}M)</span>
+                  relatedQuestions.map((q) => (
+                    <div key={q.id} className="p-3.5 bg-grey-card rounded-xl border border-border text-xs space-y-1">
+                      <div className="flex items-center justify-between font-bold text-primary-text">
+                        <span>{q.year} End Semester ({q.marks} Marks)</span>
                         {q.repeat_count > 1 && (
-                          <span className="px-1.5 py-0.2 bg-[#FF3B30]/20 text-[#FF3B30] border border-[#FF3B30]/50 font-bold">
-                            ASKED {q.repeat_count}X
+                          <span className="px-2 py-0.5 bg-peach text-primary-text rounded-pill text-[10px]">
+                            Asked {q.repeat_count}x
                           </span>
                         )}
                       </div>
-                      <p className="text-slate-300 line-clamp-3 text-[11px]">
+                      <p className="text-ink line-clamp-2 mt-1 leading-relaxed">
                         {q.text}
                       </p>
                     </div>
@@ -324,37 +389,41 @@ export const GraphPage: React.FC = () => {
               </div>
 
               {/* Linked Lecture Notes */}
-              <div className="space-y-2">
-                <div className="text-[11px] font-mono text-slate-400 uppercase tracking-wider">
-                  LINKED LECTURE NOTES ({relatedNotes.length})
-                </div>
+              <div className="space-y-3">
+                <span className="text-xs font-bold text-ink uppercase tracking-wider block">
+                  Linked Notes ({relatedNotes.length})
+                </span>
                 {relatedNotes.length === 0 ? (
-                  <div className="text-xs font-mono text-amber-400 p-2 bg-[#07090D] border border-amber-900/40">
-                    No lecture notes recorded for this topic.
-                  </div>
+                  <p className="text-xs text-status-warning bg-status-warning-bg/40 p-3 rounded-xl border border-status-warning/30">
+                    No lecture notes recorded for this topic yet.
+                  </p>
                 ) : (
-                  relatedNotes.map(n => (
-                    <div key={n.id} className="p-2 bg-[#07090D] border border-[#1F2937] text-xs font-mono flex items-center justify-between">
-                      <span className="text-white">LECTURE {n.lecture_number} (PAGE {n.page})</span>
-                      <span className="text-emerald-400">{(n.confidence * 100).toFixed(0)}% OCR</span>
+                  relatedNotes.map((n) => (
+                    <div key={n.id} className="p-3 bg-grey-card rounded-xl border border-border text-xs flex items-center justify-between">
+                      <span className="font-semibold text-ink">
+                        Lecture {n.lecture_number} (Page {n.page})
+                      </span>
+                      <span className="text-status-success font-bold">
+                        {Math.round(n.confidence * 100)}% accuracy
+                      </span>
                     </div>
                   ))
                 )}
               </div>
             </div>
 
-            <div className="pt-4 border-t border-[#1F2937] mt-4">
+            <div className="pt-6 border-t border-border mt-6">
               <button
                 onClick={() => setSelectedNode(null)}
-                className="w-full py-2 bg-[#161B22] hover:bg-[#1E2530] text-slate-300 font-mono text-xs uppercase"
+                className="w-full py-3 bg-grey-card hover:bg-border/60 text-ink font-semibold text-xs rounded-pill transition-colors"
               >
-                Close Inspector
+                Close details
               </button>
             </div>
-          </div>
-        )}
 
-      </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
