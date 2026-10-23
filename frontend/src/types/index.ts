@@ -80,7 +80,8 @@ export interface Topic {
 
 export interface Flashcard {
   id: number;
-  note_id: number;
+  document_id?: number;
+  note_id?: number;
   topic_id: number;
   front: string;
   back: string;
@@ -89,10 +90,25 @@ export interface Flashcard {
   repeat_count: number;
 }
 
+export interface DocumentInfo {
+  id: number;
+  type: DocType;
+  file_name: string;
+  source_pages: number;
+  timestamp?: string;
+  year?: number;
+  exam_type?: string;
+  created_at?: string;
+  question_count: number;
+  notes_count: number;
+  flashcard_count: number;
+}
+
 export interface StudyTask {
   id: string;
   topic_id: number;
   title: string;
+  syllabus_unit?: string;
   duration_minutes: number;
   day: number;
   status: 'NOW' | 'NEXT' | 'LATER';

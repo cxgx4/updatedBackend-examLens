@@ -1,6 +1,6 @@
 import { 
   Topic, Note, Question, Flashcard, StudyTask, 
-  CoverageGapItem, GraphNode, GraphLink, SharedPageContract
+  CoverageGapItem, GraphNode, GraphLink, SharedPageContract, DocumentInfo
 } from '../types';
 import { 
   MOCK_TOPICS, MOCK_NOTES, MOCK_QUESTIONS, 
@@ -14,6 +14,9 @@ import {
 } from './adapters';
 
 type ConnectionListener = (isConnected: boolean) => void;
+
+// Set to true if you want to fall back to hardcoded sample DBMS demo data when backend is empty
+export const USE_MOCK_FALLBACK = false;
 
 class ApiClient {
   private baseUrl: string;
@@ -87,19 +90,19 @@ class ApiClient {
       const res = await fetch(`${this.baseUrl}/api/topics/stats`);
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           return adaptTopicStats(data);
         }
       }
     } catch (e) {
       console.warn('[ExamLens API] Backend topics unavailable:', e);
     }
-    return [...MOCK_TOPICS];
+    return USE_MOCK_FALLBACK ? [...MOCK_TOPICS] : [];
   }
 
   async getNotes(): Promise<Note[]> {
     try {
-      const res = await fetch(`${this.baseUrl}/api/notes?document_id=${this.currentDocId}`);
+      const res = await fetch(`${this.baseUrl}/api/notes`);
       if (res.ok) {
         const data = await res.json();
         return adaptNotes(data);
@@ -107,7 +110,7 @@ class ApiClient {
     } catch (e) {
       console.warn('[ExamLens API] Backend notes unavailable:', e);
     }
-    return [...MOCK_NOTES];
+    return USE_MOCK_FALLBACK ? [...MOCK_NOTES] : [];
   }
 
   async getNoteById(id: number): Promise<Note | undefined> {
@@ -196,30 +199,59 @@ class ApiClient {
     }
   }
 
-  async getQuestions(filters?: { topicId?: number; year?: number; section?: string }): Promise<Question[]> {
+  async getQuestions(filters?: { topicId?: number; year?: number; section?: string; documentId?: number }): Promise<Question[]> {
     try {
       const params = new URLSearchParams();
       if (filters?.year) params.append('year', String(filters.year));
       if (filters?.section) params.append('section', filters.section);
       if (filters?.topicId) params.append('topic_id', String(filters.topicId));
+      if (filters?.documentId) params.append('document_id', String(filters.documentId));
 
       const url = `${this.baseUrl}/api/questions/enriched${params.toString() ? `?${params.toString()}` : ''}`;
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           return adaptQuestions(data);
         }
       }
     } catch (e) {
-      console.warn('[ExamLens API] Backend questions query failed, using local store:', e);
+      console.warn('[ExamLens API] Backend questions query failed:', e);
     }
 
+    if (!USE_MOCK_FALLBACK) return [];
+
     let result = [...MOCK_QUESTIONS];
+    if (filters?.documentId) result = result.filter(q => q.document_id === filters.documentId);
     if (filters?.topicId) result = result.filter(q => q.topic_id === filters.topicId);
     if (filters?.year) result = result.filter(q => q.year === filters.year);
     if (filters?.section) result = result.filter(q => q.section.toUpperCase() === filters.section?.toUpperCase());
     return result;
+  }
+
+  async getDocuments(): Promise<DocumentInfo[]> {
+    try {
+      const res = await fetch(`${this.baseUrl}/api/documents`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          return data;
+        }
+      }
+    } catch (e) {
+      console.warn('[ExamLens API] Backend documents query failed:', e);
+    }
+    return [];
+  }
+
+  async generateFlashcardsForDoc(documentId: number): Promise<{ status: string; flashcard_count: number }> {
+    const res = await fetch(`${this.baseUrl}/api/documents/${documentId}/generate-flashcards`, {
+      method: 'POST'
+    });
+    if (!res.ok) {
+      throw new Error('Failed to generate flashcards');
+    }
+    return res.json();
   }
 
   async getGraph(): Promise<{ nodes: GraphNode[]; links: GraphLink[] }> {
@@ -232,10 +264,9 @@ class ApiClient {
     } catch (e) {
       console.warn(e);
     }
-    return {
-      nodes: [...MOCK_GRAPH_NODES],
-      links: [...MOCK_GRAPH_LINKS]
-    };
+    return USE_MOCK_FALLBACK
+      ? { nodes: [...MOCK_GRAPH_NODES], links: [...MOCK_GRAPH_LINKS] }
+      : { nodes: [], links: [] };
   }
 
   async getHeatmap() {
@@ -248,7 +279,7 @@ class ApiClient {
     } catch (e) {
       console.warn(e);
     }
-    return [...MOCK_HEATMAP_DATA];
+    return USE_MOCK_FALLBACK ? [...MOCK_HEATMAP_DATA] : [];
   }
 
   async getCoverageGaps(): Promise<CoverageGapItem[]> {
@@ -261,7 +292,7 @@ class ApiClient {
     } catch {
       // Fallback
     }
-    return [...MOCK_COVERAGE_GAPS];
+    return USE_MOCK_FALLBACK ? [...MOCK_COVERAGE_GAPS] : [];
   }
   
   async getPracticeSet(): Promise<any> {
@@ -288,9 +319,12 @@ class ApiClient {
     return null;
   }
 
-  async getFlashcards(): Promise<Flashcard[]> {
+  async getFlashcards(documentId?: number): Promise<Flashcard[]> {
     try {
-      const res = await fetch(`${this.baseUrl}/api/flashcards?document_id=${this.currentDocId}`);
+      const url = documentId
+        ? `${this.baseUrl}/api/flashcards?document_id=${documentId}`
+        : `${this.baseUrl}/api/flashcards`;
+      const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
         return adaptFlashcards(data);
@@ -298,7 +332,7 @@ class ApiClient {
     } catch (e) {
       console.warn(e);
     }
-    return [...MOCK_FLASHCARDS];
+    return USE_MOCK_FALLBACK ? [...MOCK_FLASHCARDS] : [];
   }
 
   async toggleFlashcardMastery(id: number): Promise<Flashcard[]> {

@@ -169,10 +169,11 @@ export function adaptStudyTasks(data: any): StudyTask[] {
         id: `task-${dayInfo.day}-${idx}-${block.topic_id}`,
         topic_id: block.topic_id,
         title: block.topic,
+        syllabus_unit: block.syllabus_unit || '',
         duration_minutes: Math.round(block.hours * 60),
         day: dayInfo.day,
         notes_missing: block.needs_notes,
-        expected_marks: block.priority,
+        expected_marks: Math.round(block.priority || 0),
         status: dayInfo.day === 1 ? 'NOW' : (dayInfo.day === 2 ? 'NEXT' : 'LATER'),
         completed: false
       });
@@ -186,6 +187,7 @@ export function adaptFlashcards(data: any[]): Flashcard[] {
     const isMastered = localStorage.getItem(`flashcard-mastered-${f.id}`) === 'true';
     return {
       id: f.id,
+      document_id: f.document_id,
       note_id: f.note_id,
       topic_id: f.topic_id || 1,
       front: f.front,

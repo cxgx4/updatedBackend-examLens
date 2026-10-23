@@ -142,26 +142,34 @@ def get_cleaned_image(document_id: int, page: int, db: Session = Depends(get_db)
 def get_flashcards(document_id: Optional[int] = None, db: Session = Depends(get_db)):
     query = db.query(Flashcard)
     if document_id:
-        query = query.join(Note).filter(Note.document_id == document_id)
+        query = query.filter(
+            (Flashcard.document_id == document_id) |
+            (Flashcard.note_id.in_(db.query(Note.id).filter(Note.document_id == document_id)))
+        )
     cards = query.all()
     
     result = []
     for card in cards:
         topic_id = None
         repeat_count = 1
-        note_topics = db.query(NoteTopic).filter(NoteTopic.note_id == card.note_id).first()
-        if note_topics:
-            topic_id = note_topics.topic_id
+        if card.note_id:
+            note_topics = db.query(NoteTopic).filter(NoteTopic.note_id == card.note_id).first()
+            if note_topics:
+                topic_id = note_topics.topic_id
             
         if card.linked_question_id:
             q = db.query(Question).filter(Question.id == card.linked_question_id).first()
-            if q and q.repeat_group_id:
-                count = db.query(Question).filter(Question.repeat_group_id == q.repeat_group_id).count()
-                if count > 0:
-                    repeat_count = count
+            if q:
+                if topic_id is None and q.topic_id:
+                    topic_id = q.topic_id
+                if q.repeat_group_id:
+                    count = db.query(Question).filter(Question.repeat_group_id == q.repeat_group_id).count()
+                    if count > 0:
+                        repeat_count = count
                     
         result.append({
             "id": card.id,
+            "document_id": card.document_id,
             "note_id": card.note_id,
             "front": card.front,
             "back": card.back,

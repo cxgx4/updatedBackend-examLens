@@ -72,7 +72,7 @@ def trigger_processing_pipeline(document_id: int, db: Session = Depends(get_db))
                 except Exception as e:
                     topics_status = {"status": "error", "reason": str(e)}
                 try:
-                    FlashcardGenerator().generate_from_notes(db)
+                    FlashcardGenerator().generate_for_document(doc.id, db)
                     flashcards_status = {"status": "success"}
                 except Exception as e:
                     flashcards_status = {"status": "error", "reason": str(e)}
@@ -130,7 +130,7 @@ def trigger_processing_pipeline(document_id: int, db: Session = Depends(get_db))
                     repeats_status = {"status": "error", "reason": str(e)}
                     
                 try:
-                    FlashcardGenerator().generate_from_notes(db)
+                    FlashcardGenerator().generate_for_document(doc.id, db)
                     flashcards_status = {"status": "success"}
                 except Exception as e:
                     flashcards_status = {"status": "error", "reason": str(e)}

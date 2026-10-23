@@ -27,6 +27,8 @@ export const NotesPage: React.FC = () => {
   useEffect(() => {
     const fetchNotes = async () => {
       try {
+        // Fetch all notes; the API filters by document_id internally
+        // We pass no filter so all lecture board notes appear
         const n = await api.getNotes();
         setNotes(n || []);
         if (n && n.length > 0) {
@@ -354,11 +356,27 @@ export const NotesPage: React.FC = () => {
             )}
 
             {/* Note Full Explanation Text */}
-            <div className="space-y-2">
+            <div className="space-y-3">
               <h3 className="text-sm font-bold text-ink">Summary & Concept Key</h3>
-              <p className="text-sm text-ink-soft leading-relaxed whitespace-pre-wrap">
-                {activeNote.text}
-              </p>
+              <div className="space-y-2 text-sm text-ink-soft leading-relaxed">
+                {activeNote.text.split(/(\$\$[\s\S]*?\$\$)/g).map((part, idx) => {
+                  if (part.startsWith('$$') && part.endsWith('$$')) {
+                    const math = part.slice(2, -2).trim();
+                    return <KatexMath key={idx} math={math} block={true} />;
+                  }
+                  return (
+                    <span key={idx} className="whitespace-pre-wrap">
+                      {part.split(/(\$[^\$\n]+?\$)/g).map((sub, sIdx) => {
+                        if (sub.startsWith('$') && sub.endsWith('$')) {
+                          const inlineMath = sub.slice(1, -1).trim();
+                          return <KatexMath key={sIdx} math={inlineMath} block={false} />;
+                        }
+                        return sub;
+                      })}
+                    </span>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Segmented Board Regions Preview */}

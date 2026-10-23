@@ -23,7 +23,7 @@ import { api } from '../services/api';
 interface UploadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onProcessingComplete?: () => void;
+  onProcessingComplete?: (targetTab: 'notes' | 'mock') => void;
 }
 
 export const UploadModal: React.FC<UploadModalProps> = ({
@@ -122,7 +122,9 @@ export const UploadModal: React.FC<UploadModalProps> = ({
       setIsUploading(false);
 
       setTimeout(() => {
-        if (onProcessingComplete) onProcessingComplete();
+        if (onProcessingComplete) {
+          onProcessingComplete(docType === 'question_paper' ? 'mock' : 'notes');
+        }
       }, 1400);
     } catch (err: any) {
       console.warn('[Upload Error]', err);
@@ -188,7 +190,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({
         setIsUploading(false);
         setUploadSuccess(true);
         if (onProcessingComplete) {
-          setTimeout(onProcessingComplete, 1200);
+          setTimeout(() => onProcessingComplete(docType === 'question_paper' ? 'mock' : 'notes'), 1200);
         }
       }
     }, 750);
@@ -604,11 +606,11 @@ export const UploadModal: React.FC<UploadModalProps> = ({
                 type="button"
                 onClick={() => {
                   onClose();
-                  if (onProcessingComplete) onProcessingComplete();
+                  if (onProcessingComplete) onProcessingComplete(docType === 'question_paper' ? 'mock' : 'notes');
                 }}
                 className="px-6 py-2.5 min-h-[44px] bg-primary hover:bg-primary-hover text-on-primary font-bold text-xs rounded-pill shadow-warm transition-transform active:scale-95"
               >
-                Open notes
+                {docType === 'question_paper' ? 'Open questions' : 'Open notes'}
               </button>
             )}
           </div>

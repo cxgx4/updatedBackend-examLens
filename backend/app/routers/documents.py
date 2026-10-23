@@ -11,6 +11,51 @@ from app.services.ingestion import rasterize_pdf
 
 router = APIRouter(prefix="/api/documents", tags=["Documents"])
 
+@router.get("")
+def list_documents(db: Session = Depends(get_db)):
+    """Returns all uploaded documents with summary stats (pages, questions, flashcards, notes)."""
+    from app.models import Question, Note, Flashcard
+    docs = db.query(Document).order_by(Document.id.desc()).all()
+    results = []
+    for d in docs:
+        q_count = db.query(Question).filter(Question.document_id == d.id).count()
+        n_count = db.query(Note).filter(Note.document_id == d.id).count()
+        f_count = db.query(Flashcard).filter(
+            (Flashcard.document_id == d.id) |
+            (Flashcard.note_id.in_(db.query(Note.id).filter(Note.document_id == d.id)))
+        ).count()
+        
+        display_name = d.file_name or os.path.basename(d.file_path or f"document_{d.id}.pdf")
+        results.append({
+            "id": d.id,
+            "type": d.type,
+            "file_name": display_name,
+            "source_pages": d.source_pages,
+            "timestamp": d.timestamp,
+            "year": d.year,
+            "exam_type": d.exam_type,
+            "created_at": str(d.created_at) if d.created_at else None,
+            "question_count": q_count,
+            "notes_count": n_count,
+            "flashcard_count": f_count
+        })
+    return results
+
+@router.post("/{document_id}/generate-flashcards")
+def generate_flashcards_for_doc(document_id: int, db: Session = Depends(get_db)):
+    """Generates flashcards for a specific document."""
+    from app.services.flashcard_service import FlashcardGenerator
+    doc = db.query(Document).filter(Document.id == document_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    FlashcardGenerator().generate_for_document(document_id, db)
+    from app.models import Flashcard, Note
+    count = db.query(Flashcard).filter(
+        (Flashcard.document_id == document_id) |
+        (Flashcard.note_id.in_(db.query(Note.id).filter(Note.document_id == document_id)))
+    ).count()
+    return {"status": "success", "document_id": document_id, "flashcard_count": count}
+
 @router.get("/{document_id}", response_model=DocumentResponse)
 def get_document(document_id: int, db: Session = Depends(get_db)):
     doc = db.query(Document).filter(Document.id == document_id).first()

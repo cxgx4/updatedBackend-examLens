@@ -1,1 +1,0 @@
-SQLite data will be received here.

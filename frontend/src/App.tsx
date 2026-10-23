@@ -133,7 +133,7 @@ export function App() {
               <InsightsPage onNavigateToPlanner={() => setCurrentTab('planner')} />
             )}
             {currentTab === 'graph' && <GraphPage />}
-            {currentTab === 'planner' && <PlannerPage />}
+            {currentTab === 'planner' && <PlannerPage onSelectTab={setCurrentTab} />}
             {currentTab === 'mock' && <MockPage />}
             {currentTab === 'cards' && <CardsPage />}
           </motion.div>
@@ -170,9 +170,9 @@ export function App() {
       <UploadModal
         isOpen={isUploadOpen}
         onClose={() => setIsUploadOpen(false)}
-        onProcessingComplete={() => {
+        onProcessingComplete={(targetTab) => {
           setIsUploadOpen(false);
-          setCurrentTab('notes');
+          setCurrentTab(targetTab || 'notes');
         }}
       />
 

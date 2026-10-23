@@ -119,6 +119,41 @@ class NoteStructurer:
             f"Gemini request failed ({type(last_exc).__name__})"
         ) from last_exc
 
+    def transcribe_and_structure_image(self, image_path: str) -> str:
+        """Transcribes handwritten notes, formulas, and diagrams directly from page image using Gemini Vision."""
+        if self._generate_fn is not None:
+            return self._generate_fn(f"[image: {image_path}]")
+
+        try:
+            from PIL import Image
+            from google.genai import types
+
+            img = Image.open(image_path)
+            max_dim = 1600
+            if max(img.size) > max_dim:
+                ratio = max_dim / max(img.size)
+                new_size = (int(img.width * ratio), int(img.height * ratio))
+                img = img.resize(new_size, Image.Resampling.LANCZOS)
+
+            vision_prompt = (
+                "You are an academic transcriber. Transcribe all handwritten questions, notes, "
+                "formulas, steps, and calculations on this lecture/notebook page into organized clean Markdown. "
+                "Use standard LaTeX notation $...$ for inline math and $$...$$ for standalone formulas and fractions. "
+                "Preserve problem numbers, headings, and clear structure."
+            )
+
+            response = self.model.models.generate_content(
+                model=_model_name(),
+                contents=[vision_prompt, img],
+                config=types.GenerateContentConfig(
+                    temperature=0.1,
+                ),
+            )
+            text = getattr(response, "text", "") or ""
+            return text.strip()
+        except Exception as exc:
+            raise GeminiResponseError(f"Gemini Vision request failed: {exc}") from exc
+
     def structure_notes(
         self,
         session: Optional[Session] = None,
@@ -128,9 +163,10 @@ class NoteStructurer:
         if own_session:
             session = Session(bind=get_engine())
         try:
+            from app.models import Document
+
             query = session.query(Note).filter(
-                Note.text != None,  # noqa: E711
-                Note.structured_content == None,  # noqa: E711
+                (Note.text != None) | (Note.confidence != None),  # noqa: E711
             )
             if note_ids is not None:
                 if not note_ids:
@@ -141,9 +177,31 @@ class NoteStructurer:
             failed = 0
             for note in notes:
                 try:
-                    note.structured_content = self.structure_text(note.text or "")
-                    updated += 1
-                except Exception:
+                    structured = None
+
+                    # If source page image is available, transcribe directly with Gemini Vision
+                    doc = session.query(Document).filter(Document.id == note.document_id).first()
+                    if doc and doc.file_path and self._generate_fn is None:
+                        doc_dir = os.path.dirname(doc.file_path)
+                        candidate = os.path.join(doc_dir, "pages", f"page_{note.page}.png")
+                        if os.path.exists(candidate):
+                            try:
+                                structured = self.transcribe_and_structure_image(candidate)
+                                if structured:
+                                    note.text = structured
+                                    note.confidence = 0.98
+                            except Exception as ve:
+                                print(f"Gemini Vision fallback error: {ve}")
+
+                    # Fallback to standard structuring if not handled by vision
+                    if not structured and note.text:
+                        structured = self.structure_text(note.text)
+
+                    if structured:
+                        note.structured_content = structured
+                        updated += 1
+                except Exception as ex:
+                    print(f"Failed to structure note #{note.id}: {ex}")
                     failed += 1
             session.commit()
             return {"status": "ok", "updated": updated, "failed": failed, "considered": len(notes)}

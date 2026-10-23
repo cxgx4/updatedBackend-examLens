@@ -72,7 +72,8 @@ class Flashcard(Base):
     __tablename__ = "Flashcard"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    note_id = Column(Integer, ForeignKey("Note.id"), nullable=False)
+    note_id = Column(Integer, ForeignKey("Note.id"), nullable=True)
+    document_id = Column(Integer, ForeignKey("Document.id"), nullable=True)
     front = Column(String, nullable=False)
     back = Column(String, nullable=False)
-    linked_question_id = Column(Integer, ForeignKey("Question.id"), nullable=True)
+    linked_question_id = Column(Integer, ForeignKey("Question.id"), nullable=True)

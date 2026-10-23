@@ -11,9 +11,13 @@ import {
   Filter, 
   ChevronLeft, 
   ChevronRight,
-  BookOpen
+  BookOpen,
+  FileText,
+  FileQuestion,
+  Layers,
+  Sparkles
 } from 'lucide-react';
-import { Question } from '../types';
+import { Question, DocumentInfo } from '../types';
 import { api } from '../services/api';
 
 export const MockPage: React.FC = () => {
@@ -24,20 +28,36 @@ export const MockPage: React.FC = () => {
   const [userAnswers, setUserAnswers] = useState<Record<number, string>>({});
   const [exportToast, setExportToast] = useState<string | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [documents, setDocuments] = useState<DocumentInfo[]>([]);
+  const [selectedDocId, setSelectedDocId] = useState<number | 'all'>('all');
   const [activeQuestionIndex, setActiveQuestionIndex] = useState<number>(0);
   const [isFilterOpen, setIsFilterOpen] = useState<boolean>(false);
   const [selectedSection, setSelectedSection] = useState<string>('all');
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    const fetchQuestions = async () => {
+    const fetchData = async () => {
+      setIsLoading(true);
       try {
-        const q = await api.getQuestions();
+        const [q, docs] = await Promise.all([
+          api.getQuestions(),
+          api.getDocuments(),
+        ]);
         setQuestions(q || []);
+        setDocuments(docs || []);
+
+        // If documents exist, optionally select the first one that has questions
+        const firstDocWithQuestions = (docs || []).find((d) => d.question_count > 0);
+        if (firstDocWithQuestions) {
+          setSelectedDocId(firstDocWithQuestions.id);
+        }
       } catch (e) {
-        console.warn('Error fetching questions:', e);
+        console.warn('Error fetching questions/documents:', e);
+      } finally {
+        setIsLoading(false);
       }
     };
-    fetchQuestions();
+    fetchData();
   }, []);
 
   useEffect(() => {
@@ -72,14 +92,37 @@ export const MockPage: React.FC = () => {
     return { min: 350, max: 500, text: '350–500 words' };
   };
 
+  // Filter questions for selected document
+  const docFilteredQuestions = questions.filter((q) => {
+    if (selectedDocId === 'all') return true;
+    return q.document_id === selectedDocId;
+  });
+
+  // Build dynamic section list for current document
+  const availableSections = [
+    'all',
+    ...Array.from(new Set(docFilteredQuestions.map((q) => q.section).filter(Boolean))).sort(),
+  ];
+
+  // Filter questions by section
+  const normalizeSection = (s: string) => s?.replace(/^part\s+/i, '').trim().toUpperCase();
+  const filteredQuestions = docFilteredQuestions.filter((q) => {
+    if (selectedSection === 'all') return true;
+    return normalizeSection(q.section) === normalizeSection(selectedSection);
+  });
+
+  const activeQuestion = filteredQuestions[activeQuestionIndex] || filteredQuestions[0];
+  const activeDoc = documents.find((d) => d.id === selectedDocId);
+
   const handleExportPaper = () => {
+    const paperTitle = activeDoc ? activeDoc.file_name : 'ALL PAPERS COMBINED';
     const text =
-      `# EXAMLENS PRACTICE QUESTIONS - DATABASE MANAGEMENT SYSTEMS\nDuration: 90 Minutes | Total Marks: 50\n\n` +
-      questions
-        .slice(0, 5)
+      `# EXAMLENS PRACTICE QUESTIONS - ${paperTitle.toUpperCase()}\nDuration: 90 Minutes | Total Questions: ${filteredQuestions.length}\n\n` +
+      filteredQuestions
+        .slice(0, 30)
         .map(
           (q, i) =>
-            `Q${i + 1}. [${q.marks} Marks] (Section ${q.section})\n${q.text}\n\n`
+            `Q${i + 1}. [${q.marks || 5} Marks] (Section ${q.section || 'A'} • Page ${q.page})\n${q.text}\n\n`
         )
         .join('\n---\n');
 
@@ -87,25 +130,17 @@ export const MockPage: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'examlens_practice_paper.md';
+    a.download = `examlens_${paperTitle.replace(/[^a-zA-Z0-9_-]/g, '_')}_practice.md`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    setExportToast('Exported practice paper as Markdown');
+    setExportToast(`Exported ${filteredQuestions.length} questions as Markdown`);
     setTimeout(() => setExportToast(null), 3000);
   };
 
-  // Filter questions
-  const filteredQuestions = questions.filter((q) => {
-    if (selectedSection === 'all') return true;
-    return q.section.toLowerCase() === selectedSection.toLowerCase();
-  });
-
-  const activeQuestion = filteredQuestions[activeQuestionIndex] || filteredQuestions[0];
-
-  if (!questions.length) {
+  if (!isLoading && !questions.length) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
         <div className="w-16 h-16 bg-peach text-primary flex items-center justify-center rounded-full shadow-xs">
@@ -113,21 +148,110 @@ export const MockPage: React.FC = () => {
         </div>
         <h2 className="text-2xl font-bold text-ink">No practice questions yet</h2>
         <p className="text-ink-soft text-sm max-w-md">
-          Upload past exam papers to extract question items, mark distributions, and sample answer keys.
+          Upload past exam papers (PDF) to automatically extract question papers, mark distributions, and test yourself with the exam timer.
         </p>
       </div>
     );
   }
 
-  const words = getWordCount(userAnswers[activeQuestion?.id]);
-  const target = getRecommendedLength(activeQuestion?.marks || 5);
+  const words = activeQuestion ? getWordCount(userAnswers[activeQuestion.id]) : 0;
+  const target = activeQuestion ? getRecommendedLength(activeQuestion.marks || 5) : { min: 40, max: 80, text: '40-80 words' };
   const isTargetMet = words >= target.min && words <= target.max;
-  const isRevealed = revealedAnswers[activeQuestion?.id];
+  const isRevealed = activeQuestion ? revealedAnswers[activeQuestion.id] : false;
 
   return (
-    <div className="space-y-8 pb-12">
+    <div className="space-y-6 pb-12">
       
-      {/* ── TOP TIMER & EXPORT BAR ────────────────────────────────────────── */}
+      {/* ── UPLOADED PDF SELECTOR BAR ────────────────────────────────────── */}
+      <div className="bg-bg rounded-card border border-border p-4 sm:p-5 shadow-xs space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-peach flex items-center justify-center text-primary">
+              <FileQuestion size={16} />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-ink">Select Exam Paper / PDF</h2>
+              <p className="text-xs text-ink-soft">
+                Click any uploaded paper below to practice its specific questions
+              </p>
+            </div>
+          </div>
+
+          <div className="text-xs text-ink-soft font-medium">
+            Showing <strong className="text-primary-text">{filteredQuestions.length}</strong> questions
+            {activeDoc && <span> from <strong className="text-ink">{activeDoc.file_name}</strong></span>}
+          </div>
+        </div>
+
+        {/* Horizontal Scrollable Document Pills */}
+        <div className="flex items-center gap-2.5 overflow-x-auto pb-1 pt-1 scrollbar-none">
+          {/* All Papers Pill */}
+          <button
+            onClick={() => {
+              setSelectedDocId('all');
+              setActiveQuestionIndex(0);
+              setSelectedSection('all');
+            }}
+            className={`shrink-0 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all border flex items-center gap-2 ${
+              selectedDocId === 'all'
+                ? 'bg-primary text-white border-primary shadow-xs'
+                : 'bg-grey-card text-ink hover:bg-border/60 border-border/80'
+            }`}
+          >
+            <span>All Uploaded Papers</span>
+            <span
+              className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                selectedDocId === 'all' ? 'bg-white/20 text-white' : 'bg-bg text-ink-soft'
+              }`}
+            >
+              {questions.length}
+            </span>
+          </button>
+
+          {/* Individual PDF Pills */}
+          {documents.map((doc) => {
+            const isSelected = selectedDocId === doc.id;
+            return (
+              <button
+                key={doc.id}
+                onClick={() => {
+                  setSelectedDocId(doc.id);
+                  setActiveQuestionIndex(0);
+                  setSelectedSection('all');
+                }}
+                className={`shrink-0 px-3.5 py-2 rounded-xl text-xs font-medium transition-all border flex items-center gap-2.5 ${
+                  isSelected
+                    ? 'bg-ink text-white border-ink shadow-xs font-bold'
+                    : 'bg-grey-card text-ink hover:bg-border/60 border-border/80'
+                }`}
+              >
+                <FileText size={13} className={isSelected ? 'text-primary' : 'text-ink-soft'} />
+                <span className="truncate max-w-[130px] sm:max-w-[200px]" title={doc.file_name}>
+                  {doc.file_name}
+                </span>
+                <span
+                  className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                    isSelected
+                      ? 'bg-primary text-white'
+                      : doc.question_count > 0
+                      ? 'bg-peach text-primary-text'
+                      : 'bg-bg text-ink-faint'
+                  }`}
+                >
+                  {doc.question_count} Qs
+                </span>
+                {doc.year && (
+                  <span className={`text-[10px] ${isSelected ? 'text-white/70' : 'text-ink-faint'}`}>
+                    {doc.year}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── TOP TIMER & CONTROLS BAR ──────────────────────────────────────── */}
       <div className="bg-bg rounded-card border border-border p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         
         {/* Exam Timer */}
@@ -137,7 +261,7 @@ export const MockPage: React.FC = () => {
           </div>
           <div>
             <span className="text-xs font-semibold text-ink-soft block">
-              90-Minute Practice Timer
+              Practice Exam Timer
             </span>
             <div className="font-bold text-xl text-ink">
               <span>{String(minutes).padStart(2, '0')}</span>:
@@ -168,21 +292,21 @@ export const MockPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Filter Chip & Export Action */}
+        {/* Section Filter & Export Action */}
         <div className="flex items-center gap-2.5">
-          {/* Collapsible Filter Chip */}
+          {/* Collapsible Section Filter */}
           <div className="relative">
             <button
               onClick={() => setIsFilterOpen(!isFilterOpen)}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-grey-card hover:bg-border/60 text-ink font-semibold text-xs rounded-pill border border-border/80 transition-colors"
             >
               <Filter size={13} className="text-primary" />
-              <span>Section: {selectedSection === 'all' ? 'All' : selectedSection.toUpperCase()}</span>
+              <span>Section: {selectedSection === 'all' ? 'All' : selectedSection}</span>
             </button>
 
             {isFilterOpen && (
-              <div className="absolute right-0 mt-2 w-44 p-2 bg-bg rounded-2xl border border-border shadow-warm-lg z-30 space-y-1 text-xs">
-                {['all', 'A', 'B'].map((sec) => (
+              <div className="absolute right-0 mt-2 w-48 p-2 bg-bg rounded-2xl border border-border shadow-warm-lg z-30 space-y-1 text-xs">
+                {availableSections.map((sec) => (
                   <button
                     key={sec}
                     onClick={() => {
@@ -205,7 +329,8 @@ export const MockPage: React.FC = () => {
 
           <button
             onClick={handleExportPaper}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-grey-card hover:bg-border/60 text-ink font-semibold text-xs rounded-pill border border-border/80 transition-colors"
+            disabled={filteredQuestions.length === 0}
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-grey-card hover:bg-border/60 disabled:opacity-50 text-ink font-semibold text-xs rounded-pill border border-border/80 transition-colors"
           >
             <Download size={14} className="text-ink-soft" />
             <span>Export paper</span>
@@ -214,114 +339,145 @@ export const MockPage: React.FC = () => {
 
       </div>
 
-      {/* ── QUESTION DISPLAY (ONE AT A TIME) ──────────────────────────────── */}
-      {activeQuestion && (
-        <div className="bg-bg rounded-card-lg border border-border p-6 sm:p-10 shadow-xs space-y-6 max-w-3xl mx-auto">
-          
-          {/* Question Nav & Meta */}
-          <div className="flex items-center justify-between pb-4 border-b border-border/70">
-            <div className="flex items-center gap-2">
-              <span className="w-8 h-8 rounded-full bg-peach text-primary font-bold text-sm flex items-center justify-center">
-                Q{activeQuestionIndex + 1}
-              </span>
-              <div>
-                <div className="text-sm font-bold text-ink flex items-center gap-2">
-                  <span>Section {activeQuestion.section}</span>
-                  <span className="text-ink-faint">•</span>
-                  <span className="text-primary-text">{activeQuestion.marks} Marks</span>
-                  {activeQuestion.is_compulsory && (
-                    <span className="px-2 py-0.5 bg-status-danger-bg text-status-danger text-[10px] font-bold rounded-pill">
-                      Compulsory
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Stepper controls */}
-            <div className="flex items-center gap-1.5 text-xs text-ink-soft">
-              <button
-                disabled={activeQuestionIndex === 0}
-                onClick={() => setActiveQuestionIndex((prev) => Math.max(0, prev - 1))}
-                aria-label="Previous question"
-                className="w-8 h-8 rounded-pill flex items-center justify-center bg-grey-card hover:bg-border/60 disabled:opacity-40 transition-colors"
-              >
-                <ChevronLeft size={16} />
-              </button>
-              <span className="font-semibold text-ink px-1">
-                {activeQuestionIndex + 1} / {filteredQuestions.length}
-              </span>
-              <button
-                disabled={activeQuestionIndex >= filteredQuestions.length - 1}
-                onClick={() =>
-                  setActiveQuestionIndex((prev) =>
-                    Math.min(filteredQuestions.length - 1, prev + 1)
-                  )
-                }
-                aria-label="Next question"
-                className="w-8 h-8 rounded-pill flex items-center justify-center bg-grey-card hover:bg-border/60 disabled:opacity-40 transition-colors"
-              >
-                <ChevronRight size={16} />
-              </button>
-            </div>
+      {/* ── QUESTION DISPLAY OR EMPTY STATE ───────────────────────────────── */}
+      {filteredQuestions.length === 0 ? (
+        <div className="bg-bg rounded-card-lg border border-border p-8 sm:p-12 text-center space-y-4 max-w-xl mx-auto shadow-xs">
+          <div className="w-14 h-14 bg-peach text-primary flex items-center justify-center rounded-full mx-auto">
+            <BookOpen size={24} />
           </div>
-
-          {/* Question Prompt */}
-          <div className="space-y-3">
-            <h2 className="text-lg sm:text-xl font-bold text-ink leading-relaxed">
-              {activeQuestion.text}
-            </h2>
-            <div className="flex items-center gap-3 text-xs text-ink-soft">
-              <span>Target length: <strong className="text-ink font-semibold">{target.text}</strong></span>
-              <span className="text-ink-faint">•</span>
-              <span
-                className={`font-semibold px-2 py-0.5 rounded-pill ${
-                  isTargetMet
-                    ? 'bg-status-success-bg text-status-success'
-                    : words > 0
-                    ? 'bg-peach text-primary-text'
-                    : 'bg-grey-card text-ink-soft'
-                }`}
-              >
-                {words} words written
-              </span>
-            </div>
+          <div className="space-y-1.5">
+            <h3 className="text-lg font-bold text-ink">No questions in this paper</h3>
+            <p className="text-xs sm:text-sm text-ink-soft leading-relaxed">
+              {activeDoc?.type === 'lecture_board'
+                ? `"${activeDoc.file_name}" was uploaded as lecture notes. You can view its transcribed equations in the Notes tab.`
+                : `No questions match the current section filter for "${activeDoc?.file_name || 'this paper'}".`}
+            </p>
           </div>
-
-          {/* Answer Textarea */}
-          <div className="space-y-2">
-            <textarea
-              rows={6}
-              placeholder="Type your practice response here to calibrate your timing and depth..."
-              value={userAnswers[activeQuestion.id] || ''}
-              onChange={(e) => handleTextChange(activeQuestion.id, e.target.value)}
-              className="w-full p-4 bg-grey-card rounded-2xl border border-border text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-primary-text transition-all leading-relaxed"
-            />
-          </div>
-
-          {/* Sample Answer Key Accordion */}
-          <div className="pt-2">
-            <button
-              onClick={() => toggleAnswerReveal(activeQuestion.id)}
-              className="inline-flex items-center gap-2 text-xs font-semibold text-primary-text hover:text-primary transition-colors"
-            >
-              {isRevealed ? <EyeOff size={15} /> : <Eye size={15} />}
-              <span>{isRevealed ? 'Hide sample answer criteria' : 'Show sample answer criteria'}</span>
-            </button>
-
-            {isRevealed && (
-              <div className="mt-4 p-5 bg-bg-cream rounded-2xl border border-border/80 text-xs sm:text-sm text-ink-soft space-y-2.5 leading-relaxed">
-                <div className="text-xs font-bold text-primary uppercase tracking-wider">
-                  Model Answer Criteria & Points:
-                </div>
-                <p>1. State definition clearly with proper notations and keywords.</p>
-                <p>2. Show boundary cases and comparative examples directly addressing Section {activeQuestion.section} expectations.</p>
-                <p>3. Conclude with a real-world schema or counter-example illustrating the concept.</p>
-              </div>
-            )}
-          </div>
-
+          <button
+            onClick={() => {
+              setSelectedDocId('all');
+              setSelectedSection('all');
+            }}
+            className="px-4 py-2 bg-primary text-white text-xs font-bold rounded-pill hover:bg-primary-hover transition-colors"
+          >
+            View All Uploaded Questions
+          </button>
         </div>
+      ) : (
+        activeQuestion && (
+          <div className="bg-bg rounded-card-lg border border-border p-6 sm:p-10 shadow-xs space-y-6 max-w-3xl mx-auto">
+            
+            {/* Question Nav & Meta */}
+            <div className="flex items-center justify-between pb-4 border-b border-border/70">
+              <div className="flex items-center gap-2">
+                <span className="w-8 h-8 rounded-full bg-peach text-primary font-bold text-sm flex items-center justify-center">
+                  Q{activeQuestionIndex + 1}
+                </span>
+                <div>
+                  <div className="text-sm font-bold text-ink flex items-center gap-2">
+                    <span>Section {activeQuestion.section || 'General'}</span>
+                    <span className="text-ink-faint">•</span>
+                    <span className="text-primary-text">{activeQuestion.marks || 5} Marks</span>
+                    {activeQuestion.page && (
+                      <>
+                        <span className="text-ink-faint">•</span>
+                        <span className="text-xs text-ink-soft font-normal">Page {activeQuestion.page}</span>
+                      </>
+                    )}
+                    {activeQuestion.is_compulsory && (
+                      <span className="px-2 py-0.5 bg-status-danger-bg text-status-danger text-[10px] font-bold rounded-pill">
+                        Compulsory
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Stepper controls */}
+              <div className="flex items-center gap-1.5 text-xs text-ink-soft">
+                <button
+                  disabled={activeQuestionIndex === 0}
+                  onClick={() => setActiveQuestionIndex((prev) => Math.max(0, prev - 1))}
+                  aria-label="Previous question"
+                  className="w-8 h-8 rounded-pill flex items-center justify-center bg-grey-card hover:bg-border/60 disabled:opacity-40 transition-colors"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <span className="font-semibold text-ink px-1">
+                  {activeQuestionIndex + 1} / {filteredQuestions.length}
+                </span>
+                <button
+                  disabled={activeQuestionIndex >= filteredQuestions.length - 1}
+                  onClick={() =>
+                    setActiveQuestionIndex((prev) =>
+                      Math.min(filteredQuestions.length - 1, prev + 1)
+                    )
+                  }
+                  aria-label="Next question"
+                  className="w-8 h-8 rounded-pill flex items-center justify-center bg-grey-card hover:bg-border/60 disabled:opacity-40 transition-colors"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+
+            {/* Question Prompt */}
+            <div className="space-y-3">
+              <h2 className="text-lg sm:text-xl font-bold text-ink leading-relaxed whitespace-pre-wrap">
+                {activeQuestion.text}
+              </h2>
+              <div className="flex items-center gap-3 text-xs text-ink-soft">
+                <span>Target length: <strong className="text-ink font-semibold">{target.text}</strong></span>
+                <span className="text-ink-faint">•</span>
+                <span
+                  className={`font-semibold px-2 py-0.5 rounded-pill ${
+                    isTargetMet
+                      ? 'bg-status-success-bg text-status-success'
+                      : words > 0
+                      ? 'bg-peach text-primary-text'
+                      : 'bg-grey-card text-ink-soft'
+                  }`}
+                >
+                  {words} words written
+                </span>
+              </div>
+            </div>
+
+            {/* Answer Textarea */}
+            <div className="space-y-2">
+              <textarea
+                rows={6}
+                placeholder="Type your practice response here to calibrate your timing and depth..."
+                value={userAnswers[activeQuestion.id] || ''}
+                onChange={(e) => handleTextChange(activeQuestion.id, e.target.value)}
+                className="w-full p-4 bg-grey-card rounded-2xl border border-border text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-primary-text transition-all leading-relaxed"
+              />
+            </div>
+
+            {/* Sample Answer Key Accordion */}
+            <div className="pt-2">
+              <button
+                onClick={() => toggleAnswerReveal(activeQuestion.id)}
+                className="inline-flex items-center gap-2 text-xs font-semibold text-primary-text hover:text-primary transition-colors"
+              >
+                {isRevealed ? <EyeOff size={15} /> : <Eye size={15} />}
+                <span>{isRevealed ? 'Hide sample answer criteria' : 'Show sample answer criteria'}</span>
+              </button>
+
+              {isRevealed && (
+                <div className="mt-4 p-5 bg-bg-cream rounded-2xl border border-border/80 text-xs sm:text-sm text-ink-soft space-y-2.5 leading-relaxed">
+                  <div className="text-xs font-bold text-primary uppercase tracking-wider">
+                    Model Answer Criteria & Points:
+                  </div>
+                  <p>1. State definition clearly with proper notations, formulas, and keywords.</p>
+                  <p>2. Show step-by-step reasoning or mathematical working addressing Section {activeQuestion.section || 'A'} expectations.</p>
+                  <p>3. Conclude with numerical units, key tradeoffs, or practical application context.</p>
+                </div>
+              )}
+            </div>
+
+          </div>
+        )
       )}
 
       {/* Toast */}

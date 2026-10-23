@@ -4,7 +4,8 @@ import {
   ArrowRight, 
   Upload, 
   Compass, 
-  Flame 
+  Flame,
+  Sparkles
 } from 'lucide-react';
 import { NavTab } from '../components/Navbar';
 import { api } from '../services/api';
@@ -24,6 +25,7 @@ export const BoardPage: React.FC<BoardPageProps> = ({
   // Live ticking countdown to exam
   const [secondsRemaining, setSecondsRemaining] = useState(72 * 3600 + 14 * 60 + 22);
   const [topics, setTopics] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
     const fetchTopics = async () => {
@@ -32,6 +34,8 @@ export const BoardPage: React.FC<BoardPageProps> = ({
         setTopics(t || []);
       } catch (err) {
         console.warn('Could not fetch topics:', err);
+      } finally {
+        setIsLoading(false);
       }
     };
     fetchTopics();
@@ -165,8 +169,8 @@ export const BoardPage: React.FC<BoardPageProps> = ({
                 </div>
               </div>
             ))
-          ) : (
-            // Calm placeholder while loading or empty
+          ) : isLoading ? (
+            // Calm placeholder while loading
             [1, 2, 3].map((num) => (
               <div key={num} className="bg-bg-cream rounded-card p-6 border border-border/80 animate-pulse space-y-3">
                 <div className="w-8 h-8 bg-peach rounded-full" />
@@ -174,6 +178,25 @@ export const BoardPage: React.FC<BoardPageProps> = ({
                 <div className="h-4 bg-border/60 rounded w-1/2" />
               </div>
             ))
+          ) : (
+            <div className="col-span-full bg-bg-cream rounded-card p-8 border border-border/80 text-center space-y-3">
+              <div className="w-12 h-12 bg-peach/70 rounded-full flex items-center justify-center mx-auto text-primary">
+                <Sparkles size={22} />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-ink">No high-yield topics analyzed yet</h3>
+                <p className="text-xs sm:text-sm text-ink-soft max-w-md mx-auto leading-relaxed">
+                  Upload past question papers or syllabus units. ExamLens will analyze mark weights and show you the top 3 highest-yield topics to focus on here.
+                </p>
+              </div>
+              <button
+                onClick={onOpenUpload}
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-on-primary font-bold text-xs rounded-pill transition-transform active:scale-95 shadow-xs"
+              >
+                <Upload size={14} />
+                <span>Upload past papers</span>
+              </button>
+            </div>
           )}
         </div>
       </section>
